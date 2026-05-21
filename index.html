@@ -371,7 +371,11 @@ select.input option{background:#1c1c1e;}
             </select>
           </div>
         </div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="margin:0;white-space:nowrap;font-size:12px">Post to:</label>
+            <select class="input" id="gen-acct" style="font-size:12px;padding:5px 8px;width:auto"><option value="">No accounts yet</option></select>
+          </div>
           <button class="btn btn-primary" onclick="generateRevenue(false)">Generate & Post to Bank</button>
           <button class="btn" onclick="generateRevenue(true)">Preview Only</button>
         </div>
@@ -404,6 +408,7 @@ select.input option{background:#1c1c1e;}
       <!-- Manual Transaction -->
       <div class="st-card">
         <h2>💵 Manual Bank Transaction</h2>
+        <div class="form-row"><label>Account</label><select class="input" id="st-tx-acct"><option value="">No accounts yet</option></select></div>
         <div class="form-row"><label>Description</label><input class="input" id="st-tx-lbl" placeholder="e.g. Emergency HVAC repair"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="form-row">
           <div><label>Amount ($)</label><input class="input" type="number" id="st-tx-amt" placeholder="0.00"></div>
@@ -582,7 +587,8 @@ function toArrD(val){return toArr(val).reverse();}
 // ═══════════════════════════════════════════════════
 //  APP STATE
 // ═══════════════════════════════════════════════════
-let _emails=[],_txs=[],_staff=[],_todos=[],_msgs=[],_inv=[],_menu=[],_incidents=[],_sched={},_contacts=[],_reports=[];
+let _emails=[],_txs=[],_staff=[],_todos=[],_msgs=[],_inv=[],_menu=[],_incidents=[],_sched={},_contacts=[],_reports=[],_accounts=[];
+let _activeAccount=null;
 let _currentEmail=null,_activeContact=null;
 
 // ═══════════════════════════════════════════════════
@@ -691,18 +697,30 @@ mail:{icon:'✉️',title:'Inbox',
 
 bank:{icon:'💵',title:'Bank Account',
   build:()=>`
-    <div class="balance-hero">
-      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Available Balance</div>
+    <div style="padding:8px 14px;border-bottom:0.5px solid var(--border2);display:flex;align-items:center;gap:8px">
+      <select class="input" id="bank-acct-select" style="font-size:12px;padding:5px 8px;flex:1" onchange="switchAccount(this.value)">
+        <option value="">— Select account —</option>
+      </select>
+      <button class="btn btn-sm" onclick="openAddAccountModal()">+ Account</button>
+    </div>
+    <div class="balance-hero" id="bank-hero" style="display:none">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px" id="bank-acct-name">Account</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px" id="bank-acct-type"></div>
       <div class="balance-amount" id="bal-amt">$0.00</div>
       <div style="display:flex;gap:16px;justify-content:center;margin-top:6px">
         <span style="font-size:11px;color:var(--green)">▲ <span id="bal-in">$0</span> income</span>
         <span style="font-size:11px;color:var(--red)">▼ <span id="bal-ex">$0</span> expenses</span>
       </div>
+      <button class="btn btn-sm" style="margin-top:8px;font-size:10px" onclick="openEditAccountModal()">Edit account</button>
     </div>
-    <div style="padding:7px 16px;border-bottom:0.5px solid var(--border2)"><span style="font-size:12px;color:var(--text2)">Transactions</span></div>
+    <div id="bank-no-acct" style="padding:30px;text-align:center;color:var(--text3);font-size:13px">Add an account to get started</div>
+    <div style="padding:7px 16px;border-bottom:0.5px solid var(--border2);display:none" id="bank-tx-hdr"><span style="font-size:12px;color:var(--text2)">Transactions</span></div>
     <div id="tx-list"></div>
   `,
-  init(){dbListen('app_bank','transactions',v=>{_txs=toArrD(v);renderBank();});}
+  init(){
+    dbListen('app_accounts','accounts',v=>{_accounts=toArr(v);renderAccountSelect();});
+    dbListen('app_bank','transactions',v=>{_txs=toArrD(v);renderBank();});
+  }
 },
 
 staff:{icon:'👥',title:'Staff',
@@ -874,16 +892,77 @@ function updateMailBadge(){
 }
 
 // BANK
+function renderAccountSelect(){
+  const sel=document.getElementById('bank-acct-select');if(!sel)return;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— Select account —</option>';
+  _accounts.forEach(a=>{
+    const o=document.createElement('option');
+    o.value=a._k;o.textContent=a.name+(a.type?' ('+a.type+')':'');
+    if(a._k===prev||(!prev&&!_activeAccount))o.selected=true;
+    sel.appendChild(o);
+  });
+  // Auto-select first account if none active
+  if(!_activeAccount&&_accounts.length){
+    _activeAccount=_accounts[0]._k;
+    sel.value=_activeAccount;
+  }
+  renderBank();
+  // Also refresh ST account dropdown
+  renderSTAccountDropdown();
+}
+
+function switchAccount(key){
+  _activeAccount=key||null;
+  renderBank();
+}
+
 function renderBank(){
-  const bal=_txs.reduce((s,t)=>t.type==='income'?s+t.amount:s-t.amount,0);
-  const inc=_txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp=_txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const hero=document.getElementById('bank-hero');
+  const noAcct=document.getElementById('bank-no-acct');
+  const txHdr=document.getElementById('bank-tx-hdr');
+  const list=document.getElementById('tx-list');
+  if(!list)return;
+
+  if(!_activeAccount||!_accounts.length){
+    if(hero)hero.style.display='none';
+    if(noAcct)noAcct.style.display='';
+    if(txHdr)txHdr.style.display='none';
+    list.innerHTML='';
+    return;
+  }
+
+  const acct=_accounts.find(a=>a._k===_activeAccount);
+  if(!acct){
+    if(hero)hero.style.display='none';
+    if(noAcct)noAcct.style.display='';
+    if(txHdr)txHdr.style.display='none';
+    list.innerHTML='';
+    return;
+  }
+
+  if(hero)hero.style.display='';
+  if(noAcct)noAcct.style.display='none';
+  if(txHdr)txHdr.style.display='';
+
+  const nameEl=document.getElementById('bank-acct-name');
+  if(nameEl)nameEl.textContent=acct.name;
+  const typeEl=document.getElementById('bank-acct-type');
+  if(typeEl)typeEl.textContent=acct.type||'';
+
+  // Filter txs to this account
+  const acctTxs=_txs.filter(t=>t.accountId===_activeAccount);
+  const startBal=acct.startingBalance||0;
+  const inc=acctTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=acctTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const bal=startBal+inc-exp;
+
   const ba=document.getElementById('bal-amt');if(ba){ba.textContent=fmt(bal);ba.style.color=bal>=0?'var(--text)':'var(--red)';}
   const bi=document.getElementById('bal-in');if(bi)bi.textContent=fmt(inc);
   const be=document.getElementById('bal-ex');if(be)be.textContent=fmt(exp);
-  const list=document.getElementById('tx-list');if(!list)return;
-  list.innerHTML=_txs.length?'':'<div style="padding:22px;text-align:center;color:var(--text3);font-size:13px">No transactions yet</div>';
-  _txs.forEach(t=>{
+
+  list.innerHTML=acctTxs.length?'':'<div style="padding:22px;text-align:center;color:var(--text3);font-size:13px">No transactions for this account</div>';
+  acctTxs.forEach(t=>{
     const d=document.createElement('div');d.className='tx-row';
     d.innerHTML=`
       <div style="flex:1;min-width:0">
@@ -894,6 +973,79 @@ function renderBank(){
       <span class="del-btn" onclick="dbDel('transactions/${t._k}')">✕</span>
     `;
     list.appendChild(d);
+  });
+}
+
+function openAddAccountModal(){
+  showModal(`
+    <h2>Add Bank Account</h2>
+    <div class="form-row"><label>Account Name</label><input class="input" id="m-aname" placeholder="e.g. Business Checking"></div>
+    <div class="form-row"><label>Account Type</label>
+      <select class="input" id="m-atype">
+        <option value="Checking">Checking</option>
+        <option value="Savings">Savings</option>
+        <option value="Business Checking">Business Checking</option>
+        <option value="Business Savings">Business Savings</option>
+        <option value="Cash">Cash on Hand</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Starting Balance ($)</label><input class="input" type="number" id="m-abal" placeholder="0.00" value="0"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAccount('')">Create Account</button>
+    </div>
+  `);
+}
+
+function openEditAccountModal(){
+  const acct=_accounts.find(a=>a._k===_activeAccount);if(!acct)return;
+  showModal(`
+    <h2>Edit Account</h2>
+    <div class="form-row"><label>Account Name</label><input class="input" id="m-aname" value="${acct.name||''}"></div>
+    <div class="form-row"><label>Account Type</label>
+      <select class="input" id="m-atype">
+        ${['Checking','Savings','Business Checking','Business Savings','Cash on Hand','Other'].map(t=>`<option value="${t}"${acct.type===t?' selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><label>Starting Balance ($)</label><input class="input" type="number" id="m-abal" value="${acct.startingBalance||0}"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="if(confirm('Delete this account and all its transactions?'))deleteAccount('${acct._k}')">Delete</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAccount('${acct._k}')">Save</button>
+    </div>
+  `);
+}
+
+function saveAccount(key){
+  const acct={name:gv('m-aname'),type:gv('m-atype'),startingBalance:parseFloat(gv('m-abal'))||0,_ts:Date.now()};
+  if(!acct.name){showToast('Enter an account name');return;}
+  if(key){
+    dbSet('accounts/'+key,acct);
+  } else {
+    dbPush('accounts',acct).then(ref=>{
+      _activeAccount=ref.key;
+      const sel=document.getElementById('bank-acct-select');if(sel)sel.value=ref.key;
+    });
+  }
+  closeModal();showToast('Account saved');
+}
+
+function deleteAccount(key){
+  // Remove account and its transactions
+  _txs.filter(t=>t.accountId===key).forEach(t=>dbDel('transactions/'+t._k));
+  dbDel('accounts/'+key);
+  _activeAccount=null;
+  closeModal();showToast('Account deleted');
+}
+
+function renderSTAccountDropdown(){
+  ['st-tx-acct','gen-acct'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const prev=sel.value;
+    sel.innerHTML=_accounts.length
+      ?_accounts.map(a=>`<option value="${a._k}"${a._k===prev?' selected':''}>${a.name}</option>`).join('')
+      :'<option value="">No accounts yet</option>';
   });
 }
 function fmt(n){return'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -1411,8 +1563,9 @@ function generateRevenue(previewOnly){
   `;
   if(!previewOnly){
     const now=new Date().toLocaleDateString();
-    dbPush('transactions',{label:nights===1?'Night revenue':'Revenue ('+nights+' nights)',type:'income',amount:totRev,date:now,_ts:Date.now()});
-    dbPush('transactions',{label:'Operating expenses'+(nights>1?' ('+nights+' nights)':''),type:'expense',amount:totExp,date:now,_ts:Date.now()+1});
+    const genAcctId=gv('gen-acct');
+    dbPush('transactions',{label:nights===1?'Night revenue':'Revenue ('+nights+' nights)',type:'income',amount:totRev,date:now,accountId:genAcctId||'',_ts:Date.now()});
+    dbPush('transactions',{label:'Operating expenses'+(nights>1?' ('+nights+' nights)':''),type:'expense',amount:totExp,date:now,accountId:genAcctId||'',_ts:Date.now()+1});
     events.filter(e=>e.expense).forEach(e=>dbPush('incidents',{title:e.name,date:'Auto-generated',severity:'med',body:e.note,filed:'auto',_ts:Date.now()}));
     events.forEach(e=>dbPush('chat_msgs',{contact:'System',sender:'system',text:(e.isGood?'📈 ':'⚠️ ')+e.name+' — '+e.note,time:nowTime(),type:'system',_ts:Date.now()}));
     showToast('Revenue posted — player sees it now');
@@ -1434,9 +1587,11 @@ function stSendChat(){
   document.getElementById('sc-msg').value='';showToast('Message sent');
 }
 function stAddTx(){
+  const acctId=gv('st-tx-acct');
   const lbl=gv('st-tx-lbl').trim(),amt=parseFloat(gv('st-tx-amt')),type=gv('st-tx-type'),date=gv('st-tx-date').trim();
+  if(!acctId){showToast('Select an account first');return;}
   if(!lbl||!amt){showToast('Fill in label and amount');return;}
-  dbPush('transactions',{label:lbl,type,amount:amt,date,_ts:Date.now()});
+  dbPush('transactions',{label:lbl,type,amount:amt,date,accountId:acctId,_ts:Date.now()});
   ['st-tx-lbl','st-tx-amt','st-tx-date'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   showToast('Transaction posted');
 }
@@ -1464,7 +1619,7 @@ function stSaveCfg(){
 }
 function confirmClear(){
   if(confirm('Reset ALL data? This affects both ST and player and cannot be undone.')){
-    ['emails','transactions','staff','todos','chat_msgs','inventory','menu_items','incidents','schedule','contacts','reports'].forEach(k=>dbSet(k,null));
+    ['emails','transactions','accounts','staff','todos','chat_msgs','inventory','menu_items','incidents','schedule','contacts','reports'].forEach(k=>dbSet(k,null));
     showToast('All data cleared');
   }
 }
@@ -1489,7 +1644,7 @@ function checkPass(){
       document.getElementById('st-lock').style.display='none';
       document.getElementById('st-body').style.display='block';
       dbGet('config',c=>{if(c&&c.name){const el=document.getElementById('cfg-name');if(el)el.value=c.name;}});
-      renderSTInv();updateMenuAvg();
+      renderSTInv();updateMenuAvg();renderSTAccountDropdown();
     } else {
       document.getElementById('st-pass-err').style.display='block';
     }
