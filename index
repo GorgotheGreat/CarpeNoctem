@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Velvet Anchor — Manager Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase v9 compat (CDN) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --border:rgba(255,255,255,0.10);
+  --border2:rgba(255,255,255,0.06);
+  --text:#e8e8ed;
+  --text2:#98989f;
+  --text3:#636366;
+  --accent:#bf9aff;
+  --accent2:#9f6fff;
+  --green:#34c759;
+  --red:#ff453a;
+  --amber:#ffd60a;
+  --blue:#0a84ff;
+  --radius:14px;
+  --radius-sm:8px;
+  --radius-xs:5px;
+  --font:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  --mono:'Geist Mono','SF Mono','Menlo',monospace;
+  --blur:saturate(180%) blur(20px);
+}
+body{font-family:var(--font);background:linear-gradient(135deg,#1a0533 0%,#0d1a2e 40%,#0a0f1a 100%);min-height:100vh;color:var(--text);overflow:hidden;position:relative;}
+body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.012'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+
+/* ── FIREBASE CONFIG SCREEN ── */
+#config-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);}
+.config-box{background:#111113;border:0.5px solid var(--border);border-radius:var(--radius);padding:32px;width:500px;max-width:95vw;}
+.config-box h1{font-size:20px;font-weight:600;color:var(--accent);margin-bottom:6px;}
+.config-box p{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
+.config-step{background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;border-left:3px solid var(--accent2);}
+.config-step h3{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.config-step p{font-size:12px;color:var(--text2);margin-bottom:8px;}
+.config-step code{font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(255,214,10,0.08);padding:2px 6px;border-radius:4px;}
+.cfg-input-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+.status-dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
+.status-dot.red{background:var(--red);}
+.status-dot.amber{background:var(--amber);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── MENUBAR ── */
+#menubar{position:fixed;top:0;left:0;right:0;height:28px;background:rgba(13,13,15,0.75);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-bottom:0.5px solid var(--border2);display:flex;align-items:center;padding:0 16px;justify-content:space-between;z-index:1000;font-size:13px;}
+.mb-left{display:flex;align-items:center;gap:20px;}
+.mb-logo{font-size:14px;font-weight:600;color:var(--accent);}
+.mb-item{color:var(--text2);cursor:pointer;transition:color .15s;}
+.mb-item:hover{color:var(--text);}
+.mb-right{display:flex;align-items:center;gap:12px;color:var(--text2);font-size:12px;}
+.mb-time{font-family:var(--mono);font-size:11px;color:var(--text);}
+.sync-indicator{display:flex;align-items:center;gap:5px;font-size:11px;}
+
+/* ── DESKTOP ── */
+#desktop{position:fixed;inset:28px 0 72px 0;overflow:hidden;z-index:1;}
+
+/* ── WINDOWS ── */
+.win{position:absolute;background:rgba(28,28,30,0.88);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:0.5px solid var(--border);border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 0.5px rgba(255,255,255,0.05);display:flex;flex-direction:column;min-width:280px;min-height:200px;overflow:hidden;transition:box-shadow .2s;}
+.win.active{box-shadow:0 24px 80px rgba(0,0,0,0.75),0 0 0 0.5px rgba(255,255,255,0.08);}
+.win-titlebar{height:40px;display:flex;align-items:center;padding:0 14px;gap:10px;background:rgba(40,40,44,0.6);border-bottom:0.5px solid var(--border2);cursor:move;flex-shrink:0;}
+.win-dots{display:flex;gap:6px;align-items:center;margin-right:4px;}
+.win-dot{width:11px;height:11px;border-radius:50%;cursor:pointer;transition:filter .15s;}
+.win-dot.close{background:#ff5f57;}
+.win-dot.min{background:#febc2e;}
+.win-dot.max{background:#28c840;}
+.win-title{font-size:13px;font-weight:500;color:var(--text);flex:1;text-align:center;}
+.win-body{flex:1;overflow-y:auto;padding:0;}
+.win-body::-webkit-scrollbar{width:4px;}
+.win-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.win-resize{position:absolute;bottom:0;right:0;width:14px;height:14px;cursor:se-resize;opacity:0;}
+
+/* ── DOCK ── */
+#dock{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(28,28,30,0.72);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:0.5px solid var(--border);border-radius:20px;padding:8px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:1000;}
+.dock-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;border-radius:10px;transition:background .15s,transform .1s;position:relative;}
+.dock-item:hover{background:rgba(255,255,255,0.07);transform:translateY(-3px);}
+.dock-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.dock-label{font-size:9px;color:var(--text3);white-space:nowrap;}
+.dock-dot{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--text2);display:none;}
+.dock-item.open .dock-dot{display:block;}
+.dock-badge{position:absolute;top:0;right:4px;background:var(--red);color:#fff;font-size:8px;font-weight:600;min-width:14px;height:14px;border-radius:7px;display:none;align-items:center;justify-content:center;padding:0 3px;}
+
+/* ── COMMON ── */
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;}
+.pill-green{background:rgba(52,199,89,0.15);color:var(--green);}
+.pill-red{background:rgba(255,69,58,0.15);color:var(--red);}
+.pill-amber{background:rgba(255,214,10,0.15);color:var(--amber);}
+.pill-blue{background:rgba(10,132,255,0.15);color:var(--blue);}
+.pill-purple{background:rgba(191,154,255,0.15);color:var(--accent);}
+.pill-gray{background:rgba(152,152,159,0.15);color:var(--text2);}
+.row-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:0.5px solid var(--border2);transition:background .12s;cursor:pointer;}
+.row-item:hover{background:rgba(255,255,255,0.03);}
+.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--radius-xs);font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border);background:rgba(255,255,255,0.06);color:var(--text);transition:background .12s;font-family:var(--font);}
+.btn:hover{background:rgba(255,255,255,0.10);}
+.btn-primary{background:var(--accent2);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent);}
+.btn-danger{background:rgba(255,69,58,0.15);border-color:var(--red);color:var(--red);}
+.input{background:rgba(255,255,255,0.07);border:0.5px solid var(--border);border-radius:var(--radius-xs);color:var(--text);font-family:var(--font);font-size:13px;padding:7px 11px;outline:none;width:100%;transition:border-color .15s;}
+.input:focus{border-color:var(--accent2);background:rgba(255,255,255,0.09);}
+.input::placeholder{color:var(--text3);}
+textarea.input{resize:vertical;min-height:70px;}
+label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;}
+select.input option{background:#1c1c1e;color:var(--text);}
+
+/* ── MODAL ── */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:2000;align-items:center;justify-content:center;}
+#modal-overlay.show{display:flex;}
+.modal{background:#1c1c1e;border:0.5px solid var(--border);border-radius:var(--radius);box-shadow:0 30px 80px rgba(0,0,0,0.8);padding:24px;width:440px;max-width:95vw;max-height:85vh;overflow-y:auto;}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:16px;}
+.form-row{margin-bottom:13px;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;}
+
+/* ── APP STYLES ── */
+.email-list-item{padding:12px 16px;border-bottom:0.5px solid var(--border2);cursor:pointer;transition:background .12s;}
+.email-list-item:hover{background:rgba(255,255,255,0.03);}
+.email-list-item.unread .email-subject{font-weight:600;color:var(--text);}
+.email-unread-dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);flex-shrink:0;}
+.email-view{padding:16px;display:none;flex-direction:column;height:100%;}
+.email-view.active{display:flex;}
+
+.balance-hero{padding:20px 16px;text-align:center;background:linear-gradient(135deg,rgba(159,111,255,0.08),rgba(10,132,255,0.05));}
+.balance-amount{font-size:36px;font-weight:300;font-family:var(--mono);margin:4px 0;}
+.tx-item{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--border2);}
+.tx-amount{font-size:14px;font-weight:500;font-family:var(--mono);}
+.tx-amount.pos{color:var(--green);}
+.tx-amount.neg{color:var(--red);}
+
+.staff-card{padding:12px 16px;border-bottom:0.5px solid var(--border2);display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:background .12s;}
+.staff-card:hover{background:rgba(255,255,255,0.03);}
+.stars{color:var(--amber);font-size:11px;}
+
+.chat-contact-list{width:155px;border-right:0.5px solid var(--border2);flex-shrink:0;overflow-y:auto;}
+.chat-contact{padding:10px 12px;border-bottom:0.5px solid var(--border2);cursor:pointer;transition:background .12s;}
+.chat-contact:hover,.chat-contact.active{background:rgba(255,255,255,0.05);}
+.chat-bubble{max-width:78%;padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.5;}
+.chat-bubble.npc{background:rgba(255,255,255,0.09);border-bottom-left-radius:4px;}
+.chat-bubble.player{background:var(--accent2);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.chat-bubble.system{background:rgba(255,214,10,0.1);color:var(--amber);font-style:italic;font-size:11px;align-self:center;border-radius:8px;padding:4px 10px;}
+
+.todo-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid var(--border2);}
+.todo-cb{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s;}
+.todo-cb.checked{background:var(--accent2);border-color:var(--accent2);}
+.todo-del{opacity:0;font-size:14px;color:var(--text3);cursor:pointer;transition:opacity .12s;}
+.todo-item:hover .todo-del{opacity:1;}
+
+.inv-item{display:flex;align-items:center;padding:10px 16px;border-bottom:0.5px solid var(--border2);gap:10px;}
+.inv-bar-track{flex:1;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;}
+.inv-bar-fill{height:100%;border-radius:3px;transition:width .4s;}
+
+.incident-item{padding:12px 16px;border-bottom:0.5px solid var(--border2);}
+.schedule-grid{display:grid;grid-template-columns:80px repeat(7,1fr);font-size:11px;}
+.sched-cell{padding:4px 2px;border-right:0.5px solid var(--border2);border-bottom:0.5px solid var(--border2);min-height:28px;text-align:center;}
+.sched-cell.header{font-weight:500;color:var(--text2);background:rgba(255,255,255,0.03);font-size:10px;padding:6px 2px;}
+.sched-cell.name-col{text-align:left;padding-left:6px;color:var(--text2);}
+.shift-chip{display:inline-block;padding:1px 4px;border-radius:3px;font-size:9px;font-weight:500;margin:1px;}
+
+.report-item{padding:12px 16px;border-bottom:0.5px solid var(--border2);cursor:pointer;transition:background .12s;}
+.report-item:hover{background:rgba(255,255,255,0.03);}
+.report-body{font-size:12px;color:var(--text2);line-height:1.6;margin-top:6px;display:none;white-space:pre-wrap;}
+.report-body.show{display:block;}
+
+.rolodex-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:0.5px solid var(--border2);cursor:pointer;transition:background .12s;}
+.rolodex-item:hover{background:rgba(255,255,255,0.03);}
+
+/* ── ST PANEL ── */
+#st-panel{display:none;position:fixed;inset:0;z-index:3000;background:#000;overflow-y:auto;}
+#st-panel.show{display:block;}
+.st-header{background:#0a0a0c;border-bottom:0.5px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.st-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 24px;max-width:1100px;margin:0 auto;}
+.st-card{background:#0d0d0f;border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;}
+.st-card h2{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;}
+.st-full{grid-column:1/-1;}
+.gen-result{margin-top:14px;padding:14px;background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);display:none;}
+.gen-result.show{display:block;}
+
+.wallpaper-option{width:60px;height:40px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s;flex-shrink:0;}
+.wallpaper-option.active{border-color:var(--accent);}
+.wallpaper-option:hover{transform:scale(1.05);}
+
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c1c1e;border:0.5px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9000;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* live pulse on new messages */
+@keyframes newmsg{0%{background:rgba(159,111,255,0.15)}100%{background:transparent}}
+.new-msg-flash{animation:newmsg 1.2s ease-out;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     FIREBASE CONFIG SCREEN
+════════════════════════════════════════════════════════ -->
+<div id="config-screen">
+  <div class="config-box">
+    <h1>⬡ Velvet Anchor Setup</h1>
+    <p>Connect to Firebase for real-time sync between you (ST) and your player. This takes about 2 minutes and is free forever on Firebase's Spark plan.</p>
+
+    <div class="config-step">
+      <h3>Step 1 — Create Firebase Project</h3>
+      <p>Go to <strong>console.firebase.google.com</strong> → <em>Add project</em> → name it (e.g. "velvet-anchor") → disable Google Analytics → Create.</p>
+    </div>
+
+    <div class="config-step">
+      <h3>Step 2 — Enable Realtime Database</h3>
+      <p>In your project: <em>Build → Realtime Database → Create database</em> → choose any region → start in <strong>test mode</strong> → Enable.</p>
+    </div>
+
+    <div class="config-step">
+      <h3>Step 3 — Get your config</h3>
+      <p>Go to <em>Project Settings (⚙️) → Your apps → Add app → Web (&lt;/&gt;)</em> → register app → copy the <code>firebaseConfig</code> object values below.</p>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div class="cfg-input-grid">
+        <div class="form-row" style="margin:0"><label>API Key</label><input class="input" id="cfg-apiKey" placeholder="AIzaSy…"></div>
+        <div class="form-row" style="margin:0"><label>Auth Domain</label><input class="input" id="cfg-authDomain" placeholder="project.firebaseapp.com"></div>
+        <div class="form-row" style="margin:0"><label>Database URL</label><input class="input" id="cfg-dbURL" placeholder="https://project-default-rtdb.firebaseio.com"></div>
+        <div class="form-row" style="margin:0"><label>Project ID</label><input class="input" id="cfg-projectId" placeholder="project-id"></div>
+        <div class="form-row" style="margin:0"><label>Storage Bucket</label><input class="input" id="cfg-storageBucket" placeholder="project.appspot.com"></div>
+        <div class="form-row" style="margin:0"><label>Messaging Sender ID</label><input class="input" id="cfg-messagingSenderId" placeholder="123456789"></div>
+        <div class="form-row" style="margin:0" style="grid-column:1/-1"><label>App ID</label><input class="input" id="cfg-appId" placeholder="1:123:web:abc…"></div>
+      </div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text3)">Your config is saved locally in this browser only. The Firebase DB URL is the only required field if you paste the full config below.</div>
+    </div>
+
+    <div class="form-row">
+      <label>Or paste the entire firebaseConfig JSON object</label>
+      <textarea class="input" id="cfg-paste" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}' style="min-height:60px;font-size:11px;font-family:var(--mono)"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+      <button class="btn btn-primary" onclick="connectFirebase()">Connect & Launch</button>
+      <span id="cfg-status" style="font-size:12px;color:var(--text2)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN APP (hidden until Firebase connected)
+════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none">
+
+<!-- Menubar -->
+<div id="menubar">
+  <div class="mb-left">
+    <span class="mb-logo" id="mb-logo">⬡ Velvet Anchor</span>
+    <span class="mb-item" onclick="openWallpaperPicker()">Appearance</span>
+    <span class="mb-item" onclick="toggleSTView()">ST View</span>
+  </div>
+  <div class="mb-right">
+    <div class="sync-indicator" id="sync-indicator">
+      <span class="status-dot amber" id="sync-dot"></span>
+      <span id="sync-label">Connecting…</span>
+    </div>
+    <span id="mb-time" class="mb-time"></span>
+  </div>
+</div>
+
+<!-- Desktop -->
+<div id="desktop"></div>
+
+<!-- Dock -->
+<div id="dock">
+  <div class="dock-item" id="dock-mail" onclick="openApp('mail')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#1a6fff,#0050e0)">✉️</div>
+    <span class="dock-label">Mail</span><div class="dock-dot"></div>
+    <div class="dock-badge" id="mail-badge"></div>
+  </div>
+  <div class="dock-item" id="dock-bank" onclick="openApp('bank')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#2a7a1a,#1a5c10)">💵</div>
+    <span class="dock-label">Bank</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-staff" onclick="openApp('staff')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#5a2d9a,#3a1a6a)">👥</div>
+    <span class="dock-label">Staff</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-todo" onclick="openApp('todo')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#c85000,#8a3200)">✅</div>
+    <span class="dock-label">Tasks</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-chat" onclick="openApp('chat')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#00a878,#007852)">💬</div>
+    <span class="dock-label">Comms</span><div class="dock-dot"></div>
+    <div class="dock-badge" id="chat-badge"></div>
+  </div>
+  <div class="dock-item" id="dock-inventory" onclick="openApp('inventory')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#8a6a00,#5c4700)">🍾</div>
+    <span class="dock-label">Inventory</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-incident" onclick="openApp('incident')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#c82a2a,#8a1a1a)">⚠️</div>
+    <span class="dock-label">Incidents</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-schedule" onclick="openApp('schedule')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#1a8aaa,#106080)">📅</div>
+    <span class="dock-label">Schedule</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-rolodex" onclick="openApp('rolodex')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#aa6a1a,#7a4c10)">📇</div>
+    <span class="dock-label">Contacts</span><div class="dock-dot"></div>
+  </div>
+  <div class="dock-item" id="dock-report" onclick="openApp('report')">
+    <div class="dock-icon" style="background:linear-gradient(145deg,#1a4a8a,#0e2e5c)">📊</div>
+    <span class="dock-label">Reports</span><div class="dock-dot"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ST Panel -->
+<div id="st-panel">
+  <div class="st-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:17px;font-weight:600;color:var(--accent)">⬡ Storyteller Console</span>
+      <div class="sync-indicator"><span class="status-dot green" id="st-sync-dot"></span><span style="font-size:12px;color:var(--text2)">Live</span></div>
+    </div>
+    <button class="btn" onclick="toggleSTView()">← Player View</button>
+  </div>
+  <div id="st-lock-screen" style="display:flex;align-items:center;justify-content:center;min-height:80vh">
+    <div style="text-align:center;max-width:300px">
+      <div style="font-size:48px;margin-bottom:16px">🔐</div>
+      <h2 style="font-size:20px;margin-bottom:8px">Storyteller Access</h2>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Enter the ST passphrase.</p>
+      <input class="input" type="password" id="st-pass-input" placeholder="Passphrase…" style="margin-bottom:12px;text-align:center" onkeydown="if(event.key==='Enter')checkSTPass()">
+      <button class="btn btn-primary" onclick="checkSTPass()" style="width:100%">Unlock</button>
+      <div id="st-pass-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none">Incorrect passphrase.</div>
+    </div>
+  </div>
+  <div id="st-content" style="display:none">
+    <div class="st-grid">
+
+      <!-- Revenue Generator -->
+      <div class="st-card st-full" style="border-color:rgba(159,111,255,0.25)">
+        <h2>💰 Revenue & Expense Generator</h2>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px">
+          <div class="form-row" style="margin:0"><label>Nights to Generate</label><input class="input" type="number" id="gen-nights" value="1" min="1" max="90"></div>
+          <div class="form-row" style="margin:0"><label>Avg Covers / Night</label><input class="input" type="number" id="gen-covers" value="120" min="1"></div>
+          <div class="form-row" style="margin:0"><label>Avg Spend / Cover ($)</label><input class="input" type="number" id="gen-spend" value="42" min="1"></div>
+          <div class="form-row" style="margin:0"><label>Night Type</label>
+            <select class="input" id="gen-type">
+              <option value="normal">Normal</option>
+              <option value="slow">Slow Night</option>
+              <option value="busy">Busy Night</option>
+              <option value="event">Special Event</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+          <div class="form-row" style="margin:0"><label>Staff Payroll / Night ($)</label><input class="input" type="number" id="gen-payroll" value="800"></div>
+          <div class="form-row" style="margin:0"><label>Supply Cost / Night ($)</label><input class="input" type="number" id="gen-supply" value="400"></div>
+          <div class="form-row" style="margin:0"><label>Random Event</label>
+            <select class="input" id="gen-event">
+              <option value="none">None</option>
+              <option value="random">Roll Random (25%)</option>
+              <option value="good">Force Good Event</option>
+              <option value="bad">Force Bad Event</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="generateRevenue(false)">Generate &amp; Post to Bank</button>
+          <button class="btn" onclick="generateRevenue(true)">Preview Only</button>
+        </div>
+        <div class="gen-result" id="gen-result"></div>
+      </div>
+
+      <!-- Send Email -->
+      <div class="st-card">
+        <h2>✉️ Send Email to Player</h2>
+        <div class="form-row"><label>From (sender name)</label><input class="input" id="st-email-from" placeholder="e.g. Lux Spirits Distribution"></div>
+        <div class="form-row"><label>Subject</label><input class="input" id="st-email-subject" placeholder="Subject line…"></div>
+        <div class="form-row"><label>Body</label><textarea class="input" id="st-email-body" placeholder="Email body…" style="min-height:90px"></textarea></div>
+        <div class="form-row"><label>Priority</label>
+          <select class="input" id="st-email-priority">
+            <option value="normal">Normal</option><option value="urgent">Urgent</option><option value="info">Info</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="stSendEmail()">Send Email →</button>
+      </div>
+
+      <!-- Send Chat -->
+      <div class="st-card">
+        <h2>💬 Send Chat Message (as NPC)</h2>
+        <div class="form-row"><label>Contact / NPC Name</label><input class="input" id="st-chat-from" placeholder="e.g. Danny K., Ana (Loc 2)…"></div>
+        <div class="form-row"><label>Message</label><textarea class="input" id="st-chat-msg" placeholder="Message text…"></textarea></div>
+        <div class="form-row"><label>Type</label>
+          <select class="input" id="st-chat-type">
+            <option value="npc">Normal NPC Message</option>
+            <option value="system">System Alert</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="stSendChat()">Send →</button>
+      </div>
+
+      <!-- Manual Transaction -->
+      <div class="st-card">
+        <h2>💵 Manual Bank Transaction</h2>
+        <div class="form-row"><label>Description</label><input class="input" id="st-tx-label" placeholder="e.g. Unexpected repair — AC unit"></div>
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label>Amount ($)</label><input class="input" type="number" id="st-tx-amount" placeholder="0.00"></div>
+          <div><label>Type</label>
+            <select class="input" id="st-tx-type"><option value="income">Income (+)</option><option value="expense">Expense (−)</option></select>
+          </div>
+        </div>
+        <div class="form-row"><label>Date Label</label><input class="input" id="st-tx-date" placeholder="e.g. Friday May 23rd"></div>
+        <button class="btn btn-primary" onclick="stAddTransaction()">Post Transaction →</button>
+      </div>
+
+      <!-- Inventory Control -->
+      <div class="st-card">
+        <h2>🍾 Inventory Adjustment</h2>
+        <div id="st-inv-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+        <button class="btn" onclick="openInventoryModal(-1,{name:'',current:0,max:100,unit:''})">+ Add Item</button>
+      </div>
+
+      <!-- File Incident -->
+      <div class="st-card">
+        <h2>⚠️ File Incident Report</h2>
+        <div class="form-row"><label>Title</label><input class="input" id="st-inc-title" placeholder="Brief description…"></div>
+        <div class="form-row"><label>Date / Shift</label><input class="input" id="st-inc-date" placeholder="e.g. Friday Night, Late Shift"></div>
+        <div class="form-row"><label>Severity</label>
+          <select class="input" id="st-inc-sev">
+            <option value="low">Low — Minor</option><option value="med">Medium — Serious</option><option value="high">High — Critical</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Details</label><textarea class="input" id="st-inc-body" placeholder="What happened…"></textarea></div>
+        <button class="btn btn-primary" onclick="stFileIncident()">File Report →</button>
+      </div>
+
+      <!-- Nightly Report -->
+      <div class="st-card">
+        <h2>📊 Post Nightly Report</h2>
+        <div class="form-row"><label>Night / Date</label><input class="input" id="st-rep-date" placeholder="e.g. Saturday May 24th"></div>
+        <div class="form-row"><label>Headline</label><input class="input" id="st-rep-headline" placeholder="Short summary…"></div>
+        <div class="form-row"><label>Full Report</label><textarea class="input" id="st-rep-body" placeholder="Covers, revenue, incidents, staff notes…" style="min-height:100px"></textarea></div>
+        <button class="btn btn-primary" onclick="stPostReport()">Post Report →</button>
+      </div>
+
+      <!-- Config -->
+      <div class="st-card">
+        <h2>⚙️ Config</h2>
+        <div class="form-row"><label>Bar / Business Name</label><input class="input" id="st-biz-name" placeholder="Velvet Anchor"></div>
+        <div class="form-row"><label>ST Passphrase</label><input class="input" type="password" id="st-new-pass" placeholder="New passphrase…"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="stSaveConfig()">Save Config</button>
+          <button class="btn btn-danger" onclick="confirmClearAll()">⚠ Reset All Data</button>
+        </div>
+        <div style="margin-top:14px;padding:10px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm)">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Firebase connection</div>
+          <div style="font-size:11px;color:var(--text2)" id="st-db-url"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  FIREBASE INIT
+// ════════════════════════════════════════════════════════════
+let db=null;
+const LISTENERS={};
+
+function connectFirebase(){
+  let cfg={};
+  const paste=document.getElementById('cfg-paste').value.trim();
+  if(paste){
+    try{cfg=JSON.parse(paste);}catch(e){setStatus('❌ Invalid JSON — check your paste','var(--red)');return;}
+  } else {
+    cfg={
+      apiKey:g('cfg-apiKey'),authDomain:g('cfg-authDomain'),databaseURL:g('cfg-dbURL'),
+      projectId:g('cfg-projectId'),storageBucket:g('cfg-storageBucket'),
+      messagingSenderId:g('cfg-messagingSenderId'),appId:g('cfg-appId')
+    };
+  }
+  if(!cfg.databaseURL){setStatus('❌ Database URL is required','var(--red)');return;}
+  setStatus('Connecting…','var(--amber)');
+  try{
+    if(firebase.apps.length)firebase.app().delete();
+    firebase.initializeApp(cfg);
+    db=firebase.database();
+    // Test connection
+    db.ref('.info/connected').on('value',snap=>{
+      const connected=snap.val();
+      setSyncStatus(connected);
+      if(connected){
+        localStorage.setItem('va_firebase_cfg',JSON.stringify(cfg));
+        document.getElementById('config-screen').style.display='none';
+        document.getElementById('app').style.display='block';
+        document.getElementById('st-db-url').textContent=cfg.databaseURL;
+        initApp();
+        setStatus('','');
+      }
+    });
+    setTimeout(()=>{
+      if(!db)setStatus('❌ Could not connect — check your config','var(--red)');
+    },6000);
+  }catch(err){setStatus('❌ '+err.message,'var(--red)');}
+}
+
+function setStatus(msg,color){
+  const el=document.getElementById('cfg-status');
+  el.textContent=msg;el.style.color=color;
+}
+
+function setSyncStatus(connected){
+  const dot=document.getElementById('sync-dot');
+  const lbl=document.getElementById('sync-label');
+  const sdot=document.getElementById('st-sync-dot');
+  if(dot){dot.className='status-dot '+(connected?'green':'red');}
+  if(lbl){lbl.textContent=connected?'Live':'Reconnecting…';}
+  if(sdot){sdot.className='status-dot '+(connected?'green':'red');}
+}
+
+// ── Firebase DB helpers ─────────────────────────────────────
+function ref(path){return db.ref(path);}
+
+function dbGet(path,cb){
+  ref(path).once('value',snap=>cb(snap.val()));
+}
+
+function dbSet(path,val){
+  return ref(path).set(val);
+}
+
+function dbPush(path,val){
+  return ref(path).push(val);
+}
+
+function dbRemove(path){
+  return ref(path).remove();
+}
+
+function dbListen(key,path,cb){
+  if(LISTENERS[key])ref(LISTENERS[key]).off();
+  LISTENERS[key]=path;
+  ref(path).on('value',snap=>{cb(snap.val()||getDefault(key));});
+}
+
+function getDefault(key){
+  const defs={emails:[],transactions:[],staff:[],todos:[],chat_msgs:[],inventory:[],incidents:[],schedule:{},contacts:[],reports:[],config:{name:'Velvet Anchor',pass:'storyteller',wallpaper:'default'}};
+  return defs[key]!==undefined?defs[key]:null;
+}
+
+// Convert Firebase object to array (Firebase stores arrays as objects with keys)
+function toArr(val){
+  if(!val)return[];
+  if(Array.isArray(val))return val;
+  return Object.entries(val).map(([k,v])=>({...v,_key:k})).sort((a,b)=>(a._ts||0)-(b._ts||0));
+}
+
+// Newest-first array from Firebase
+function toArrDesc(val){return toArr(val).reverse();}
+
+// ════════════════════════════════════════════════════════════
+//  APP INIT — start all listeners
+// ════════════════════════════════════════════════════════════
+function initApp(){
+  loadConfig();
+  updateClock();setInterval(updateClock,1000);
+  updateMailBadge();
+  // Listen for new chat messages to flash badge
+  dbListen('chat_msgs_notify','chat_msgs',()=>updateChatBadge());
+}
+
+function loadConfig(){
+  dbGet('config',cfg=>{
+    if(!cfg)return;
+    const name=cfg.name||'Velvet Anchor';
+    document.getElementById('mb-logo').textContent='⬡ '+name;
+    document.title=name+' — Manager Console';
+    const st=document.getElementById('st-biz-name');if(st)st.value=name;
+    if(cfg.wallpaper&&cfg.wallpaper!=='default'){
+      const wp=WALLPAPERS[cfg.wallpaper]||cfg.customWP||null;
+      if(wp)document.body.style.background=wp;
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  WINDOW MANAGER
+// ════════════════════════════════════════════════════════════
+let zTop=10;
+const wins={};
+const defaultPositions={
+  mail:{x:40,y:20,w:560,h:420},bank:{x:620,y:20,w:440,h:460},
+  staff:{x:40,y:200,w:400,h:400},todo:{x:460,y:200,w:340,h:360},
+  chat:{x:820,y:160,w:480,h:420},inventory:{x:40,y:350,w:420,h:360},
+  incident:{x:480,y:330,w:420,h:380},schedule:{x:80,y:80,w:660,h:360},
+  rolodex:{x:200,y:120,w:440,h:400},report:{x:300,y:60,w:520,h:400},
+};
+
+function openApp(id){
+  if(wins[id]){bringToFront(wins[id]);return;}
+  const p=defaultPositions[id]||{x:80,y:60,w:480,h:380};
+  const el=document.createElement('div');
+  el.className='win';el.id='win-'+id;
+  el.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;`;
+  const app=APPS[id];
+  el.innerHTML=`
+    <div class="win-titlebar" onmousedown="startDrag(event,'${id}')">
+      <div class="win-dots">
+        <div class="win-dot close" onclick="closeApp('${id}')"></div>
+        <div class="win-dot min"></div>
+        <div class="win-dot max" onclick="maximizeWin('${id}')"></div>
+      </div>
+      <span style="font-size:13px">${app.icon}</span>
+      <span class="win-title">${app.title}</span>
+    </div>
+    <div class="win-body" id="body-${id}">${app.build()}</div>
+    <div class="win-resize" onmousedown="startResize(event,'${id}')"></div>
+  `;
+  document.getElementById('desktop').appendChild(el);
+  wins[id]=el;bringToFront(el);
+  document.getElementById('dock-'+id)?.classList.add('open');
+  app.init&&app.init();
+}
+
+function closeApp(id){
+  // Detach Firebase listeners for this app
+  const key='app_'+id;
+  if(LISTENERS[key]){ref(LISTENERS[key]).off();delete LISTENERS[key];}
+  wins[id]?.remove();delete wins[id];
+  document.getElementById('dock-'+id)?.classList.remove('open');
+}
+
+function bringToFront(el){
+  el.style.zIndex=++zTop;
+  document.querySelectorAll('.win').forEach(w=>w.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function maximizeWin(id){
+  const el=wins[id];if(!el)return;
+  if(el.dataset.maxed){el.style.cssText=el.dataset.prev;delete el.dataset.maxed;}
+  else{el.dataset.prev=el.style.cssText;el.dataset.maxed=1;el.style.cssText='left:0;top:0;width:100%;height:100%;border-radius:0;';}
+}
+
+let dragWin=null,dragOX=0,dragOY=0;
+function startDrag(e,id){
+  if(e.target.classList.contains('win-dot'))return;
+  dragWin=wins[id];dragOX=e.clientX-dragWin.offsetLeft;dragOY=e.clientY-dragWin.offsetTop;
+  bringToFront(dragWin);e.preventDefault();
+}
+document.addEventListener('mousemove',e=>{
+  if(dragWin){dragWin.style.left=(e.clientX-dragOX)+'px';dragWin.style.top=Math.max(0,e.clientY-dragOY)+'px';}
+  if(resizeWin){resizeWin.style.width=Math.max(280,e.clientX-resizeWin.offsetLeft)+'px';resizeWin.style.height=Math.max(200,e.clientY-resizeWin.offsetTop)+'px';}
+});
+document.addEventListener('mouseup',()=>{dragWin=null;resizeWin=null;});
+let resizeWin=null;
+function startResize(e,id){resizeWin=wins[id];e.preventDefault();e.stopPropagation();}
+
+// ════════════════════════════════════════════════════════════
+//  APP DEFINITIONS
+// ════════════════════════════════════════════════════════════
+const APPS={
+
+mail:{icon:'✉️',title:'Inbox',
+  build(){return`
+    <div id="mail-list-pane">
+      <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--border2)">
+        <span style="font-size:12px;color:var(--text2)">Inbox</span>
+        <span style="font-size:11px;color:var(--text3)" id="mail-count"></span>
+      </div>
+      <div id="mail-list"></div>
+    </div>
+    <div class="email-view" id="mail-view">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:0.5px solid var(--border2)">
+        <button class="btn" onclick="backToMailList()" style="font-size:11px;padding:3px 8px">← Back</button>
+        <span id="mail-view-from" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+      <div style="padding:14px 16px;border-bottom:0.5px solid var(--border2)">
+        <div id="mail-view-subject" style="font-size:15px;font-weight:600"></div>
+        <div id="mail-view-time" style="font-size:11px;color:var(--text3);margin-top:3px"></div>
+      </div>
+      <div id="mail-view-body" style="padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.7;flex:1;overflow-y:auto;white-space:pre-wrap"></div>
+      <div style="padding:10px 16px;border-top:0.5px solid var(--border2);display:flex;gap:8px">
+        <input class="input" id="mail-reply-input" placeholder="Reply…" style="font-size:12px;padding:6px 10px" onkeydown="if(event.key==='Enter')sendReply()">
+        <button class="btn btn-primary" onclick="sendReply()" style="font-size:12px">Send</button>
+      </div>
+    </div>
+  `},
+  init(){
+    dbListen('app_mail','emails',val=>{
+      _emails=toArrDesc(val);renderMailList();updateMailBadge();
+    });
+  }
+},
+
+bank:{icon:'💵',title:'Bank Account',
+  build(){return`
+    <div class="balance-hero">
+      <div style="font-size:12px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase">Available Balance</div>
+      <div class="balance-amount" id="balance-display">$0.00</div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:8px">
+        <span style="font-size:11px;color:var(--green)">▲ <span id="balance-income">$0</span> income</span>
+        <span style="font-size:11px;color:var(--red)">▼ <span id="balance-exp">$0</span> expenses</span>
+      </div>
+    </div>
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2)"><span style="font-size:12px;color:var(--text2)">Recent Transactions</span></div>
+    <div id="tx-list"></div>
+  `},
+  init(){dbListen('app_bank','transactions',val=>{_txs=toArrDesc(val);renderBank();});}
+},
+
+staff:{icon:'👥',title:'Staff',
+  build(){return`
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2)">
+      <button class="btn" onclick="openAddStaff()" style="font-size:11px">+ Add Employee</button>
+    </div>
+    <div id="staff-list"></div>
+  `},
+  init(){dbListen('app_staff','staff',val=>{_staff=toArr(val);renderStaff();});}
+},
+
+todo:{icon:'✅',title:'Task List',
+  build(){return`
+    <div style="padding:10px 16px;border-bottom:0.5px solid var(--border2);display:flex;gap:8px">
+      <input class="input" id="todo-new-input" placeholder="New task…" style="font-size:12px;padding:6px 10px" onkeydown="if(event.key==='Enter')addTodo()">
+      <select class="input" id="todo-new-priority" style="font-size:12px;padding:6px 8px;width:auto">
+        <option value="none">—</option><option value="urgent">Urgent</option><option value="today">Today</option>
+      </select>
+      <button class="btn" onclick="addTodo()" style="font-size:11px;padding:5px 10px">+</button>
+    </div>
+    <div id="todo-list"></div>
+  `},
+  init(){dbListen('app_todo','todos',val=>{_todos=toArr(val);renderTodos();});}
+},
+
+chat:{icon:'💬',title:'Comms',
+  build(){return`
+    <div style="display:flex;height:100%;overflow:hidden">
+      <div class="chat-contact-list" id="chat-contacts"></div>
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:8px 12px;border-bottom:0.5px solid var(--border2);font-size:13px;font-weight:500" id="chat-active-name">Select a contact</div>
+        <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px"></div>
+        <div style="padding:10px 12px;border-top:0.5px solid var(--border2);display:flex;gap:8px">
+          <input class="input" id="chat-input" placeholder="Message…" style="font-size:12px;padding:6px 10px" onkeydown="if(event.key==='Enter')playerSendChat()">
+          <button class="btn btn-primary" onclick="playerSendChat()" style="font-size:12px;padding:5px 10px">Send</button>
+        </div>
+      </div>
+    </div>
+  `},
+  init(){
+    dbListen('app_chat','chat_msgs',val=>{
+      _msgs=toArr(val);renderChat();
+    });
+  }
+},
+
+inventory:{icon:'🍾',title:'Inventory',
+  build(){return`
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--text2)">Stock Levels</span>
+      <button class="btn" onclick="openInventoryModal(-1,{name:'',current:0,max:100,unit:''})" style="font-size:11px">+ Item</button>
+    </div>
+    <div id="inv-list"></div>
+  `},
+  init(){dbListen('app_inv','inventory',val=>{_inventory=toArr(val);renderInventory();});}
+},
+
+incident:{icon:'⚠️',title:'Incident Log',
+  build(){return`
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2)">
+      <button class="btn" onclick="openFileIncident()" style="font-size:11px">+ File Incident</button>
+    </div>
+    <div id="incident-list"></div>
+  `},
+  init(){dbListen('app_inc','incidents',val=>{_incidents=toArrDesc(val);renderIncidents();});}
+},
+
+schedule:{icon:'📅',title:'Shift Schedule',
+  build(){return`
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:var(--text2)">Weekly Schedule</span>
+      <button class="btn" onclick="openEditSchedule()" style="font-size:11px">Edit</button>
+    </div>
+    <div id="sched-grid" style="overflow-x:auto;padding:0"></div>
+  `},
+  init(){dbListen('app_sched','schedule',val=>{_schedule=val||{};renderSchedule();});}
+},
+
+rolodex:{icon:'📇',title:'Contacts',
+  build(){return`
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2);display:flex;gap:8px">
+      <input class="input" id="rolodex-search" placeholder="Search…" style="font-size:12px;padding:6px 10px" oninput="renderRolodex()">
+      <button class="btn" onclick="openAddContact()" style="font-size:11px">+ Add</button>
+    </div>
+    <div id="rolodex-list"></div>
+  `},
+  init(){dbListen('app_rdx','contacts',val=>{_contacts=toArr(val);renderRolodex();});}
+},
+
+report:{icon:'📊',title:'Nightly Reports',
+  build(){return`
+    <div style="padding:8px 16px;border-bottom:0.5px solid var(--border2)"><span style="font-size:12px;color:var(--text2)">Recent Reports</span></div>
+    <div id="report-list"></div>
+  `},
+  init(){dbListen('app_rep','reports',val=>{_reports=toArrDesc(val);renderReports();});}
+},
+};
+
+// ════════════════════════════════════════════════════════════
+//  LOCAL STATE (populated by Firebase listeners)
+// ════════════════════════════════════════════════════════════
+let _emails=[],_txs=[],_staff=[],_todos=[],_msgs=[],_inventory=[],_incidents=[],_schedule={},_contacts=[],_reports=[];
+let currentEmailId=null,activeChatContact=null;
+
+// ════════════════════════════════════════════════════════════
+//  MAIL
+// ════════════════════════════════════════════════════════════
+function renderMailList(){
+  const el=document.getElementById('mail-list');if(!el)return;
+  const unread=_emails.filter(e=>!e.read).length;
+  const ct=document.getElementById('mail-count');
+  if(ct)ct.textContent=unread?`${unread} unread`:`${_emails.length} messages`;
+  el.innerHTML=_emails.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No messages</div>';
+  _emails.forEach((m,i)=>{
+    const d=document.createElement('div');
+    d.className='email-list-item'+(m.read?'':' unread');
+    const pTag=m.priority==='urgent'?`<span class="pill pill-red" style="font-size:10px">Urgent</span>`:m.priority==='info'?`<span class="pill pill-blue" style="font-size:10px">Info</span>`:'';
+    d.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px">
+            ${!m.read?'<div class="email-unread-dot"></div>':'<div style="width:7px"></div>'}
+            <div style="font-size:12px;color:var(--text2);font-weight:500">${m.from}</div>${pTag}
+          </div>
+          <div class="email-list-item" style="font-size:13px;margin-left:13px;margin-top:2px;padding:0;border:none;${m.read?'color:var(--text2)':'color:var(--text);font-weight:600'}">${m.subject}</div>
+          <div style="font-size:11px;color:var(--text3);margin-left:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(m.body||'').slice(0,80)}</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);white-space:nowrap">${m.time||''}</div>
+      </div>
+    `;
+    d.onclick=()=>openEmail(i,m._key);
+    el.appendChild(d);
+  });
+}
+
+function openEmail(idx,key){
+  const m=_emails[idx];if(!m)return;
+  currentEmailId={idx,key:key||m._key};
+  // Mark read
+  if(key)dbSet('emails/'+key+'/read',true);
+  document.getElementById('mail-list-pane').style.display='none';
+  document.getElementById('mail-view').classList.add('active');
+  document.getElementById('mail-view-from').textContent='From: '+m.from;
+  document.getElementById('mail-view-subject').textContent=m.subject;
+  document.getElementById('mail-view-time').textContent=m.time||'';
+  let body=m.body||'';
+  if(m.replies){const rArr=Array.isArray(m.replies)?m.replies:Object.values(m.replies);rArr.forEach(r=>{body+='\n\n—— Your Reply ——\n'+r;});}
+  document.getElementById('mail-view-body').textContent=body;
+}
+
+function backToMailList(){
+  document.getElementById('mail-list-pane').style.display='';
+  document.getElementById('mail-view').classList.remove('active');
+  currentEmailId=null;
+}
+
+function sendReply(){
+  if(!currentEmailId)return;
+  const inp=document.getElementById('mail-reply-input');
+  const val=inp.value.trim();if(!val)return;
+  dbPush('emails/'+currentEmailId.key+'/replies',val);
+  inp.value='';showToast('Reply saved');
+}
+
+function updateMailBadge(){
+  const unread=_emails.filter(e=>!e.read).length;
+  const b=document.getElementById('mail-badge');
+  if(b){b.textContent=unread||'';b.style.display=unread?'flex':'none';}
+}
+
+// ════════════════════════════════════════════════════════════
+//  BANK
+// ════════════════════════════════════════════════════════════
+function renderBank(){
+  const balance=_txs.reduce((s,t)=>t.type==='income'?s+t.amount:s-t.amount,0);
+  const income=_txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=_txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const bd=document.getElementById('balance-display');
+  if(bd){bd.textContent=fmt(balance);bd.style.color=balance>=0?'var(--text)':'var(--red)';}
+  const bi=document.getElementById('balance-income');if(bi)bi.textContent=fmt(income);
+  const be=document.getElementById('balance-exp');if(be)be.textContent=fmt(exp);
+  const list=document.getElementById('tx-list');if(!list)return;
+  list.innerHTML=_txs.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No transactions yet</div>';
+  _txs.forEach(t=>{
+    const d=document.createElement('div');d.className='tx-item';
+    d.innerHTML=`
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px">${t.type==='income'?'🟢':'🔴'} ${t.label||''}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.date||''}</div>
+      </div>
+      <div class="tx-amount ${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'−'}${fmt(t.amount||0)}</div>
+    `;
+    list.appendChild(d);
+  });
+}
+function fmt(n){return'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+// ════════════════════════════════════════════════════════════
+//  STAFF
+// ════════════════════════════════════════════════════════════
+function renderStaff(){
+  const list=document.getElementById('staff-list');if(!list)return;
+  list.innerHTML=_staff.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No employees yet</div>';
+  const colors=['#5a2d9a','#1a5a9a','#1a7a4a','#7a4a1a','#7a1a3a'];
+  _staff.forEach((s,i)=>{
+    const initials=(s.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const stars='★'.repeat(s.rating||3)+'☆'.repeat(5-(s.rating||3));
+    const statuses={active:'pill-green',watch:'pill-amber',terminated:'pill-red',onleave:'pill-blue'};
+    const statusLabels={active:'Active',watch:'Watch',terminated:'Terminated',onleave:'On Leave'};
+    const d=document.createElement('div');d.className='staff-card';
+    d.innerHTML=`
+      <div class="avatar" style="background:${colors[i%colors.length]}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:500">${s.name}</div>
+          <span class="pill ${statuses[s.status]||'pill-gray'}">${statusLabels[s.status]||s.status||'Active'}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">${s.role||'Staff'} · <span class="stars">${stars}</span></div>
+        ${s.notes?`<div style="font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5">${s.notes}</div>`:''}
+      </div>
+      <button class="btn" onclick="openEditStaff(${i})" style="font-size:11px;padding:3px 8px">Edit</button>
+    `;
+    list.appendChild(d);
+  });
+}
+function openAddStaff(){openStaffModal(-1,{});}
+function openEditStaff(i){openStaffModal(i,_staff[i]);}
+function openStaffModal(idx,s){
+  s=s||{};
+  showModal(`
+    <h2>${idx<0?'Add Employee':'Edit Employee'}</h2>
+    <div class="form-row"><label>Name</label><input class="input" id="m-name" value="${s.name||''}"></div>
+    <div class="form-row"><label>Role / Position</label><input class="input" id="m-role" value="${s.role||''}"></div>
+    <div class="form-row"><label>Notes</label><textarea class="input" id="m-notes">${s.notes||''}</textarea></div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>Rating (1-5)</label><input class="input" id="m-rating" type="number" min="1" max="5" value="${s.rating||3}"></div>
+      <div><label>Status</label>
+        <select class="input" id="m-status">
+          ${['active','watch','onleave','terminated'].map(v=>`<option value="${v}"${s.status===v?' selected':''}>${{active:'Active',watch:'Watch List',onleave:'On Leave',terminated:'Terminated'}[v]}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      ${idx>=0&&s._key?`<button class="btn btn-danger" onclick="deleteStaff('${s._key}')">Delete</button>`:''}
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStaff(${idx},'${s._key||''}')">Save</button>
+    </div>
+  `);
+}
+function saveStaff(idx,key){
+  const s={name:gv('m-name'),role:gv('m-role'),notes:gv('m-notes'),rating:parseInt(gv('m-rating'))||3,status:gv('m-status'),_ts:Date.now()};
+  if(key)dbSet('staff/'+key,s);else dbPush('staff',s);
+  closeModal();showToast('Saved');
+}
+function deleteStaff(key){dbRemove('staff/'+key);closeModal();}
+
+// ════════════════════════════════════════════════════════════
+//  TODO
+// ════════════════════════════════════════════════════════════
+function renderTodos(){
+  const list=document.getElementById('todo-list');if(!list)return;
+  list.innerHTML=_todos.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">All clear!</div>';
+  _todos.forEach((t,i)=>{
+    const pTag=t.priority==='urgent'?`<span class="pill pill-red" style="font-size:10px">Urgent</span>`:t.priority==='today'?`<span class="pill pill-amber" style="font-size:10px">Today</span>`:'';
+    const d=document.createElement('div');d.className='todo-item';
+    d.innerHTML=`
+      <div class="todo-cb ${t.done?'checked':''}" onclick="toggleTodo('${t._key}',${!t.done})">${t.done?'<span style="font-size:9px;color:#fff">✓</span>':''}</div>
+      <span style="font-size:13px;flex:1;cursor:pointer;${t.done?'text-decoration:line-through;color:var(--text3)':''}" onclick="toggleTodo('${t._key}',${!t.done})">${t.text}</span>
+      ${pTag}
+      <span class="todo-del" onclick="dbRemove('todos/${t._key}')">✕</span>
+    `;
+    list.appendChild(d);
+  });
+}
+function addTodo(){
+  const inp=document.getElementById('todo-new-input');
+  const pr=document.getElementById('todo-new-priority');
+  const val=inp.value.trim();if(!val)return;
+  dbPush('todos',{text:val,done:false,priority:pr.value,_ts:Date.now()});
+  inp.value='';
+}
+function toggleTodo(key,done){dbSet('todos/'+key+'/done',done);}
+
+// ════════════════════════════════════════════════════════════
+//  CHAT
+// ════════════════════════════════════════════════════════════
+function renderChat(){renderChatContacts();renderChatMessages();}
+function renderChatContacts(){
+  const contacts=[...new Set(_msgs.map(m=>m.contact).filter(Boolean))];
+  const el=document.getElementById('chat-contacts');if(!el)return;
+  el.innerHTML='';
+  if(!contacts.length){el.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text3)">No messages yet</div>';return;}
+  contacts.forEach(c=>{
+    const last=_msgs.filter(m=>m.contact===c).slice(-1)[0];
+    const d=document.createElement('div');
+    d.className='chat-contact'+(activeChatContact===c?' active':'');
+    d.innerHTML=`<div style="font-size:12px;font-weight:500">${c}</div><div style="font-size:10px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last?last.text:''}</div>`;
+    d.onclick=()=>{activeChatContact=c;renderChat();};
+    el.appendChild(d);
+  });
+}
+function renderChatMessages(){
+  const el=document.getElementById('chat-messages');if(!el)return;
+  const nameEl=document.getElementById('chat-active-name');
+  if(!activeChatContact){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Select a contact</div>';return;}
+  if(nameEl)nameEl.textContent=activeChatContact;
+  const msgs=_msgs.filter(m=>m.contact===activeChatContact);
+  el.innerHTML='';
+  msgs.forEach(m=>{
+    const d=document.createElement('div');d.style.cssText='display:flex;'+(m.sender==='player'?'justify-content:flex-end':'');
+    if(m.type==='system'){
+      d.innerHTML=`<div class="chat-bubble system">${m.text}</div>`;
+    } else {
+      d.innerHTML=`<div><div class="chat-bubble ${m.sender==='player'?'player':'npc'}">${m.text}</div><div style="font-size:9px;color:var(--text3);margin-top:2px;text-align:${m.sender==='player'?'right':'left'}">${m.time||''}</div></div>`;
+    }
+    el.appendChild(d);
+  });
+  el.scrollTop=el.scrollHeight;
+}
+function playerSendChat(){
+  if(!activeChatContact)return;
+  const inp=document.getElementById('chat-input');
+  const val=inp.value.trim();if(!val)return;
+  dbPush('chat_msgs',{contact:activeChatContact,sender:'player',text:val,time:nowTime(),type:'player',_ts:Date.now()});
+  inp.value='';
+}
+function updateChatBadge(){
+  // If chat window isn't open, flash badge
+  if(!wins['chat']){
+    const unread=_msgs.filter(m=>m.sender!=='player'&&!m._seen).length;
+    const b=document.getElementById('chat-badge');
+    if(b&&unread>0){b.textContent='●';b.style.display='flex';}
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  INVENTORY
+// ════════════════════════════════════════════════════════════
+function renderInventory(){
+  const list=document.getElementById('inv-list');if(!list)return;
+  list.innerHTML=_inventory.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Add items to track</div>';
+  _inventory.forEach((item,i)=>{
+    const pct=Math.round(((item.current||0)/(item.max||1))*100);
+    const bc=pct>60?'var(--green)':pct>25?'var(--amber)':'var(--red)';
+    const d=document.createElement('div');d.className='inv-item';
+    d.innerHTML=`
+      <div style="font-size:13px;width:120px;flex-shrink:0">${item.name}</div>
+      <div class="inv-bar-track"><div class="inv-bar-fill" style="width:${pct}%;background:${bc}"></div></div>
+      <div style="font-family:var(--mono);font-size:12px;width:60px;text-align:right;flex-shrink:0;color:${bc}">${item.current}/${item.max} ${item.unit||''}</div>
+      <button class="btn" onclick="openInventoryModal(${i},{...window._inventory[${i}]})" style="font-size:10px;padding:2px 7px">Edit</button>
+    `;
+    list.appendChild(d);
+  });
+  renderSTInventory();
+}
+function renderSTInventory(){
+  const el=document.getElementById('st-inv-list');if(!el)return;
+  el.innerHTML='';
+  _inventory.forEach((item,i)=>{
+    const d=document.createElement('div');d.style.cssText='display:flex;align-items:center;gap:8px;font-size:12px';
+    d.innerHTML=`
+      <span style="flex:1;color:var(--text2)">${item.name}</span>
+      <input class="input" type="number" value="${item.current||0}" min="0" max="${item.max||100}" style="width:60px;padding:4px 6px;font-size:11px" onchange="if(item._key)dbSet('inventory/${item._key}/current',parseInt(this.value)||0)">
+      <span style="color:var(--text3);font-size:11px">/ ${item.max||100} ${item.unit||''}</span>
+    `;
+    el.appendChild(d);
+  });
+}
+function openInventoryModal(idx,item){
+  item=item||{};
+  showModal(`
+    <h2>${idx<0?'Add Inventory Item':'Edit Item'}</h2>
+    <div class="form-row"><label>Item Name</label><input class="input" id="m-inv-name" value="${item.name||''}"></div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div><label>Current</label><input class="input" id="m-inv-cur" type="number" value="${item.current||0}"></div>
+      <div><label>Max</label><input class="input" id="m-inv-max" type="number" value="${item.max||100}"></div>
+      <div><label>Unit</label><input class="input" id="m-inv-unit" value="${item.unit||''}"></div>
+    </div>
+    <div class="modal-actions">
+      ${item._key?`<button class="btn btn-danger" onclick="dbRemove('inventory/${item._key}');closeModal()">Delete</button>`:''}
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInventoryItem('${item._key||''}')">Save</button>
+    </div>
+  `);
+}
+function saveInventoryItem(key){
+  const item={name:gv('m-inv-name'),current:parseInt(gv('m-inv-cur'))||0,max:parseInt(gv('m-inv-max'))||100,unit:gv('m-inv-unit'),_ts:Date.now()};
+  if(key)dbSet('inventory/'+key,item);else dbPush('inventory',item);
+  closeModal();
+}
+
+// ════════════════════════════════════════════════════════════
+//  INCIDENTS
+// ════════════════════════════════════════════════════════════
+function renderIncidents(){
+  const list=document.getElementById('incident-list');if(!list)return;
+  list.innerHTML=_incidents.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No incidents on record</div>';
+  _incidents.forEach(inc=>{
+    const sevColor={low:'pill-blue',med:'pill-amber',high:'pill-red'}[inc.severity]||'pill-gray';
+    const sevLabel={low:'Minor',med:'Serious',high:'Critical'}[inc.severity]||inc.severity;
+    const d=document.createElement('div');d.className='incident-item';
+    d.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:500">${inc.title||''}</div>
+        <span class="pill ${sevColor}">${sevLabel}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${inc.date||''}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:5px;line-height:1.5">${inc.body||''}</div>
+    `;
+    list.appendChild(d);
+  });
+}
+function openFileIncident(){
+  showModal(`
+    <h2>File Incident Report</h2>
+    <div class="form-row"><label>Title</label><input class="input" id="m-inc-title" placeholder="Brief description…"></div>
+    <div class="form-row"><label>Date / Shift</label><input class="input" id="m-inc-date" placeholder="e.g. Saturday Night"></div>
+    <div class="form-row"><label>Severity</label>
+      <select class="input" id="m-inc-sev"><option value="low">Low — Minor</option><option value="med">Medium</option><option value="high">High — Critical</option></select>
+    </div>
+    <div class="form-row"><label>Details</label><textarea class="input" id="m-inc-body" placeholder="What happened…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIncident()">File Report</button>
+    </div>
+  `);
+}
+function saveIncident(){
+  dbPush('incidents',{title:gv('m-inc-title'),date:gv('m-inc-date'),severity:gv('m-inc-sev'),body:gv('m-inc-body'),filed:nowTime(),_ts:Date.now()});
+  closeModal();showToast('Incident filed');
+}
+
+// ════════════════════════════════════════════════════════════
+//  SCHEDULE
+// ════════════════════════════════════════════════════════════
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function renderSchedule(){
+  const el=document.getElementById('sched-grid');if(!el)return;
+  if(!_staff.length){el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Add staff first</div>';return;}
+  let html='<div class="schedule-grid">';
+  html+='<div class="sched-cell header"></div>';
+  DAYS.forEach(d=>html+=`<div class="sched-cell header">${d}</div>`);
+  _staff.forEach(s=>{
+    html+=`<div class="sched-cell name-col" style="font-size:11px">${s.name}</div>`;
+    DAYS.forEach(day=>{
+      const key=(s.name+'_'+day).replace(/[^a-z0-9_]/gi,'_');
+      const shift=_schedule[key]||'';
+      const chips={open:`<span class="shift-chip" style="background:rgba(52,199,89,0.15);color:var(--green)">O</span>`,
+        close:`<span class="shift-chip" style="background:rgba(255,69,58,0.15);color:var(--red)">C</span>`,
+        mid:`<span class="shift-chip" style="background:rgba(10,132,255,0.15);color:var(--blue)">M</span>`,
+        off:`<span class="shift-chip" style="color:var(--text3)">—</span>`};
+      html+=`<div class="sched-cell">${chips[shift]||''}</div>`;
+    });
+  });
+  html+='</div>';el.innerHTML=html;
+}
+function openEditSchedule(){
+  if(!_staff.length){showToast('Add staff first');return;}
+  let rows='';
+  _staff.forEach(s=>{
+    rows+=`<tr><td style="font-size:12px;color:var(--text2);padding:4px 6px;white-space:nowrap">${s.name}</td>`;
+    DAYS.forEach(day=>{
+      const key=(s.name+'_'+day).replace(/[^a-z0-9_]/gi,'_');
+      rows+=`<td style="padding:2px"><select class="input" id="s_${key}" style="font-size:10px;padding:2px 4px;width:56px">
+        <option value="">—</option>
+        <option value="open"${_schedule[key]==='open'?' selected':''}>Open</option>
+        <option value="mid"${_schedule[key]==='mid'?' selected':''}>Mid</option>
+        <option value="close"${_schedule[key]==='close'?' selected':''}>Close</option>
+        <option value="off"${_schedule[key]==='off'?' selected':''}>Off</option>
+      </select></td>`;
+    });rows+='</tr>';
+  });
+  showModal(`
+    <h2>Edit Weekly Schedule</h2>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+      <thead><tr><th></th>${DAYS.map(d=>`<th style="font-size:10px;color:var(--text3);padding:4px 2px">${d}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">O = Open · M = Mid · C = Close</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveSchedule()">Save</button></div>
+  `);
+}
+function saveSchedule(){
+  const sched={};
+  _staff.forEach(s=>{
+    DAYS.forEach(day=>{
+      const key=(s.name+'_'+day).replace(/[^a-z0-9_]/gi,'_');
+      const el=document.getElementById('s_'+key);
+      if(el&&el.value)sched[key]=el.value;
+    });
+  });
+  dbSet('schedule',sched);closeModal();showToast('Schedule saved');
+}
+
+// ════════════════════════════════════════════════════════════
+//  ROLODEX
+// ════════════════════════════════════════════════════════════
+function renderRolodex(){
+  const q=(document.getElementById('rolodex-search')?.value||'').toLowerCase();
+  const filtered=q?_contacts.filter(c=>((c.name||'')+(c.role||'')+(c.notes||'')).toLowerCase().includes(q)):_contacts;
+  const list=document.getElementById('rolodex-list');if(!list)return;
+  list.innerHTML=filtered.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No contacts</div>';
+  const colors=['#1a5a9a','#5a2d9a','#1a7a4a','#7a4a1a','#7a1a3a','#1a6a6a'];
+  filtered.forEach((c,i)=>{
+    const initials=(c.name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const d=document.createElement('div');d.className='rolodex-item';
+    d.innerHTML=`
+      <div class="avatar" style="background:${colors[i%colors.length]}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500">${c.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${c.role||''}${c.phone?' · '+c.phone:''}</div>
+        ${c.notes?`<div style="font-size:11px;color:var(--text2);margin-top:3px">${c.notes}</div>`:''}
+      </div>
+      <button class="btn" onclick="openEditContact('${c._key||''}')" style="font-size:11px;padding:3px 8px">Edit</button>
+    `;
+    list.appendChild(d);
+  });
+}
+function openAddContact(){openContactModal(null,{});}
+function openEditContact(key){const c=_contacts.find(x=>x._key===key)||{};openContactModal(key,c);}
+function openContactModal(key,c){
+  showModal(`
+    <h2>${key?'Edit Contact':'Add Contact'}</h2>
+    <div class="form-row"><label>Name</label><input class="input" id="m-con-name" value="${c.name||''}"></div>
+    <div class="form-row"><label>Role / Company</label><input class="input" id="m-con-role" value="${c.role||''}"></div>
+    <div class="form-row"><label>Phone / Contact</label><input class="input" id="m-con-phone" value="${c.phone||''}"></div>
+    <div class="form-row"><label>Notes</label><textarea class="input" id="m-con-notes">${c.notes||''}</textarea></div>
+    <div class="modal-actions">
+      ${key?`<button class="btn btn-danger" onclick="dbRemove('contacts/${key}');closeModal()">Delete</button>`:''}
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact('${key||''}')">Save</button>
+    </div>
+  `);
+}
+function saveContact(key){
+  const c={name:gv('m-con-name'),role:gv('m-con-role'),phone:gv('m-con-phone'),notes:gv('m-con-notes'),_ts:Date.now()};
+  if(key)dbSet('contacts/'+key,c);else dbPush('contacts',c);
+  closeModal();
+}
+
+// ════════════════════════════════════════════════════════════
+//  REPORTS
+// ════════════════════════════════════════════════════════════
+function renderReports(){
+  const list=document.getElementById('report-list');if(!list)return;
+  list.innerHTML=_reports.length?'':'<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No reports posted yet</div>';
+  _reports.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='report-item';
+    const bid='rb-'+i;
+    d.innerHTML=`
+      <div style="font-size:11px;color:var(--text3)">${r.date||''}</div>
+      <div style="font-size:13px;font-weight:500;margin-top:2px;cursor:pointer" onclick="document.getElementById('${bid}').classList.toggle('show')">${r.headline||''} <span style="font-size:10px;color:var(--text3)">▾</span></div>
+      <div class="report-body" id="${bid}">${r.body||''}</div>
+    `;
+    list.appendChild(d);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  REVENUE GENERATOR
+// ════════════════════════════════════════════════════════════
+const RANDOM_EVENTS={
+  good:[
+    {name:'Local band drew a big crowd',mult:1.35,note:'Walk-in traffic was way up.'},
+    {name:'Bachelorette party blitz',mult:1.28,note:'A dozen groups rolled in back-to-back.'},
+    {name:'Sports watch party',mult:1.45,note:'Championship game packed the bar.'},
+    {name:'Viral social media post',mult:1.22,note:"Someone's post blew up — bar was slammed."},
+    {name:'Corporate private buyout',mult:1.60,extra:800,note:'A company booked the bar for 3 hours.'},
+    {name:'VIP high-roller visit',mult:1.15,extra:1200,note:'Big spender rolled in with an entourage.'},
+    {name:'Food critic in the house',mult:1.08,note:'Quiet night but a critic was there. Reputation incoming.'},
+  ],
+  bad:[
+    {name:'Health inspector surprise visit',mult:0.70,expense:600,note:'Emergency cleaning and a citation.'},
+    {name:'Bar fight — early shutdown',mult:0.50,note:'Police called; closed 2 hours early.'},
+    {name:'Keg delivery wrong — short order',mult:0.82,note:'Ran dry on two taps mid-shift.'},
+    {name:'AC unit failed mid-shift',mult:0.75,expense:900,note:'Customers left early in the heat.'},
+    {name:'Credit card terminal down 2 hrs',mult:0.88,note:'Cash-only for part of the night.'},
+    {name:'Social media complaint went viral',mult:0.72,note:'Negative post spread. Walk-ins killed.'},
+    {name:'Key bartender no-showed',mult:0.80,note:'Scrambled to cover — slow service all night.'},
+    {name:'Plumbing emergency',mult:0.60,expense:1400,note:'Pipes backed up. Bar partially unusable.'},
+  ]
+};
+
+function generateRevenue(previewOnly){
+  const nights=parseInt(gv('gen-nights'))||1;
+  const covers=parseInt(gv('gen-covers'))||100;
+  const spend=parseInt(gv('gen-spend'))||40;
+  const type=gv('gen-type');
+  const payroll=parseInt(gv('gen-payroll'))||800;
+  const supply=parseInt(gv('gen-supply'))||400;
+  const eventMode=gv('gen-event');
+  const typeMults={normal:[0.85,1.15],slow:[0.55,0.80],busy:[1.15,1.40],event:[1.30,1.65]};
+  const [tMin,tMax]=typeMults[type]||[0.9,1.1];
+
+  let totalRev=0,totalExp=0,eventsFired=[],breakdown=[];
+  for(let n=0;n<nights;n++){
+    const v=tMin+(Math.random()*(tMax-tMin));
+    const nightCovers=Math.round(covers*v+(Math.random()*10-5));
+    let nightRev=Math.round(nightCovers*spend);
+    let nightExp=payroll+supply;
+    let evt=null;
+    const doEvent=(eventMode==='random'&&Math.random()<0.25)||eventMode==='good'||eventMode==='bad';
+    if(doEvent){
+      const good=eventMode==='good'||(eventMode==='random'&&Math.random()>0.45);
+      const pool=good?RANDOM_EVENTS.good:RANDOM_EVENTS.bad;
+      evt=pool[Math.floor(Math.random()*pool.length)];
+      nightRev=Math.round(nightRev*(evt.mult||1))+(evt.extra||0);
+      nightExp+=evt.expense||0;
+      eventsFired.push(evt);
+    }
+    totalRev+=nightRev;totalExp+=nightExp;
+    breakdown.push({n:n+1,rev:nightRev,exp:nightExp,covers:nightCovers,evt});
+  }
+  const net=totalRev-totalExp;
+  const bkHtml=nights<=7?breakdown.map(b=>`
+    <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:0.5px solid var(--border2)">
+      <span style="color:var(--text3)">Night ${b.n}${b.evt?` — <em style="color:var(--amber)">${b.evt.name}</em>`:''}</span>
+      <span>${b.covers} covers · <span style="color:var(--green)">+${fmt(b.rev)}</span> / <span style="color:var(--red)">-${fmt(b.exp)}</span></span>
+    </div>`).join(''):'';
+  const evtHtml=eventsFired.length?`<div style="margin-top:10px"><div style="font-size:11px;font-weight:600;color:var(--amber);margin-bottom:4px">Events</div>${eventsFired.map(e=>`<div style="font-size:11px;color:var(--text2);margin-bottom:3px">⚡ <strong>${e.name}</strong> — ${e.note}</div>`).join('')}</div>`:'';
+
+  const res=document.getElementById('gen-result');
+  res.className='gen-result show';
+  res.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+      <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">Total Revenue</div><div style="font-size:18px;font-weight:500;color:var(--green)">${fmt(totalRev)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">Total Expenses</div><div style="font-size:18px;font-weight:500;color:var(--red)">${fmt(totalExp)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">Net Profit</div><div style="font-size:18px;font-weight:500;color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}${fmt(net)}</div></div>
+    </div>${bkHtml}${evtHtml}
+    ${!previewOnly?'<div style="margin-top:10px;font-size:11px;color:var(--green)">✓ Posted to Firebase — player will see this instantly</div>':'<div style="margin-top:10px;font-size:11px;color:var(--amber)">Preview only — not posted</div>'}
+  `;
+
+  if(!previewOnly){
+    const now=new Date().toLocaleDateString();
+    dbPush('transactions',{label:nights===1?'Night revenue':'Revenue ('+nights+' nights)',type:'income',amount:totalRev,date:now,_ts:Date.now()});
+    dbPush('transactions',{label:'Operating expenses'+(nights>1?' ('+nights+' nights)':''),type:'expense',amount:totalExp,date:now,_ts:Date.now()+1});
+    eventsFired.filter(e=>e.expense).forEach(e=>{
+      dbPush('incidents',{title:e.name,date:'Auto-generated',severity:'med',body:e.note,filed:'auto',_ts:Date.now()});
+    });
+    eventsFired.forEach(e=>{
+      const isGood=RANDOM_EVENTS.good.includes(e);
+      dbPush('chat_msgs',{contact:'System',sender:'system',text:(isGood?'📈 ':'⚠️ ')+e.name+' — '+e.note,time:nowTime(),type:'system',_ts:Date.now()});
+    });
+    showToast('Posted to Firebase — player sees it now');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ST ACTIONS
+// ════════════════════════════════════════════════════════════
+function stSendEmail(){
+  const from=gv('st-email-from').trim(),sub=gv('st-email-subject').trim(),body=gv('st-email-body').trim(),priority=gv('st-email-priority');
+  if(!from||!sub){showToast('Fill in From and Subject');return;}
+  dbPush('emails',{from,subject:sub,body,priority,time:new Date().toLocaleString(),read:false,_ts:Date.now()});
+  ['st-email-from','st-email-subject','st-email-body'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  showToast('Email delivered to player inbox');
+}
+
+function stSendChat(){
+  const from=gv('st-chat-from').trim(),text=gv('st-chat-msg').trim(),type=gv('st-chat-type');
+  if(!from||!text){showToast('Fill in contact and message');return;}
+  dbPush('chat_msgs',{contact:from,sender:type==='system'?'system':'npc',text,time:nowTime(),type,_ts:Date.now()});
+  document.getElementById('st-chat-msg').value='';
+  showToast('Message sent');
+}
+
+function stAddTransaction(){
+  const label=gv('st-tx-label').trim(),amount=parseFloat(gv('st-tx-amount')),type=gv('st-tx-type'),date=gv('st-tx-date').trim();
+  if(!label||!amount){showToast('Fill in label and amount');return;}
+  dbPush('transactions',{label,type,amount,date,_ts:Date.now()});
+  ['st-tx-label','st-tx-amount','st-tx-date'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  showToast('Transaction posted to player bank');
+}
+
+function stFileIncident(){
+  dbPush('incidents',{title:gv('st-inc-title'),date:gv('st-inc-date'),severity:gv('st-inc-sev'),body:gv('st-inc-body'),filed:'ST',_ts:Date.now()});
+  ['st-inc-title','st-inc-date','st-inc-body'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  showToast('Incident filed');
+}
+
+function stPostReport(){
+  dbPush('reports',{date:gv('st-rep-date'),headline:gv('st-rep-headline'),body:gv('st-rep-body'),posted:new Date().toLocaleString(),_ts:Date.now()});
+  ['st-rep-date','st-rep-headline','st-rep-body'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  showToast('Report posted');
+}
+
+function stSaveConfig(){
+  const name=gv('st-biz-name')||'Velvet Anchor';
+  const pass=gv('st-new-pass');
+  dbGet('config',cfg=>{
+    cfg=cfg||{pass:'storyteller'};
+    cfg.name=name;
+    if(pass)cfg.pass=pass;
+    dbSet('config',cfg);
+    document.getElementById('mb-logo').textContent='⬡ '+name;
+    document.title=name+' — Manager Console';
+    showToast('Config saved');
+  });
+}
+
+function confirmClearAll(){
+  if(confirm('Reset ALL data? This cannot be undone and affects BOTH player and ST.')){
+    ['emails','transactions','staff','todos','chat_msgs','inventory','incidents','schedule','contacts','reports'].forEach(k=>dbSet(k,null));
+    showToast('All data cleared');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ST ACCESS
+// ════════════════════════════════════════════════════════════
+let stUnlocked=false;
+function toggleSTView(){
+  const panel=document.getElementById('st-panel');
+  panel.classList.toggle('show');
+  if(panel.classList.contains('show')&&!stUnlocked){
+    document.getElementById('st-lock-screen').style.display='flex';
+    document.getElementById('st-content').style.display='none';
+  }
+}
+function checkSTPass(){
+  const inp=document.getElementById('st-pass-input').value;
+  dbGet('config',cfg=>{
+    const pass=(cfg&&cfg.pass)||'storyteller';
+    if(inp===pass){
+      stUnlocked=true;
+      document.getElementById('st-lock-screen').style.display='none';
+      document.getElementById('st-content').style.display='block';
+      const nameEl=document.getElementById('st-biz-name');if(nameEl&&cfg)nameEl.value=cfg.name||'Velvet Anchor';
+      renderSTInventory();
+    } else {
+      document.getElementById('st-pass-error').style.display='block';
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  WALLPAPER
+// ════════════════════════════════════════════════════════════
+const WALLPAPERS={
+  default:'linear-gradient(135deg,#1a0533 0%,#0d1a2e 40%,#0a0f1a 100%)',
+  midnight:'linear-gradient(160deg,#000000 0%,#0a0a1a 50%,#050510 100%)',
+  forest:'linear-gradient(135deg,#0a1f0a 0%,#0f2a1a 50%,#081508 100%)',
+  ember:'linear-gradient(135deg,#1a0800 0%,#2a1000 40%,#100500 100%)',
+  ocean:'linear-gradient(135deg,#001a2e 0%,#002e4a 50%,#000e1a 100%)',
+  rose:'linear-gradient(135deg,#1a0010 0%,#2e0020 50%,#0f0008 100%)',
+};
+function openWallpaperPicker(){
+  const opts=Object.keys(WALLPAPERS).map(k=>`<div class="wallpaper-option" style="background:${WALLPAPERS[k]}" onclick="setWallpaper('${k}',this)" title="${k}"></div>`).join('');
+  showModal(`
+    <h2>Appearance</h2>
+    <label style="margin-bottom:10px">Wallpaper</label>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">${opts}</div>
+    <div class="form-row"><label>Custom CSS gradient</label><input class="input" id="wp-custom" placeholder="linear-gradient(…)"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Done</button><button class="btn btn-primary" onclick="applyCustomWP()">Apply Custom</button></div>
+  `);
+}
+function setWallpaper(key,el){
+  document.querySelectorAll('.wallpaper-option').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  document.body.style.background=WALLPAPERS[key];
+  dbGet('config',cfg=>{cfg=cfg||{};cfg.wallpaper=key;dbSet('config',cfg);});
+}
+function applyCustomWP(){
+  const val=document.getElementById('wp-custom').value.trim();if(!val)return;
+  document.body.style.background=val;
+  dbGet('config',cfg=>{cfg=cfg||{};cfg.wallpaper='custom';cfg.customWP=val;dbSet('config',cfg);});
+  closeModal();
+}
+
+// ════════════════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════════════════
+function g(id){const el=document.getElementById(id);return el?el.value:'';}
+function gv(id){return g(id);}
+function nowTime(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function showModal(html){document.getElementById('modal-content').innerHTML=html;document.getElementById('modal-overlay').classList.add('show');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show');}
+function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+let toastTimer;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400);}
+function updateClock(){const el=document.getElementById('mb-time');if(el)el.textContent=new Date().toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+// Auto-reconnect from saved config
+window.addEventListener('load',()=>{
+  const saved=localStorage.getItem('va_firebase_cfg');
+  if(saved){
+    try{
+      const cfg=JSON.parse(saved);
+      document.getElementById('cfg-paste').value=JSON.stringify(cfg,null,2);
+    }catch(e){}
+  }
+});
+</script>
+</body>
+</html>
