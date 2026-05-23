@@ -486,6 +486,8 @@ select.input option{background:#1c1c1e;}
           <div class="doc-type-btn" onclick="selectDocType(this,'Property Management Notice')">Property Management Notice</div>
           <div class="doc-type-btn" onclick="selectDocType(this,'Vendor Supply Agreement')">Vendor Supply Agreement</div>
           <div class="doc-type-btn" onclick="selectDocType(this,'Insurance Policy Notice')">Insurance Policy Notice</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'Contractor Agreement (Renovation)')">Contractor Agreement</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'Real Estate Purchase Contract')">Real Estate Purchase Contract</div>
         </div>
         <div class="doc-cat-label">Alerts & Notifications (text/short)</div>
         <div class="doc-type-grid">
@@ -1979,6 +1981,25 @@ const DOC_CONFIGS = {
     {id:'df-payee',label:'Payee / Vendor',ph:'e.g. Lux Spirits Distribution'},
     {id:'df-retry',label:'Retry Date (if any)',ph:'e.g. May 28, 2026'},
   ],hint:'Why did it fail and what are the next steps?'},
+  'Contractor Agreement (Renovation)':{tone:'corporate',fields:[
+    {id:'df-contractor',label:'Contractor Name / Company',ph:'e.g. Gulf Coast Renovations LLC'},
+    {id:'df-license-num',label:'Contractor License #',ph:'e.g. LA-GC-2024-8821'},
+    {id:'df-prop-address',label:'Property Address',ph:'e.g. 412 Elsinore Ave, New Orleans'},
+    {id:'df-scope',label:'Scope of Work',ph:'e.g. Full bar renovation — plumbing, electrical, interior build-out'},
+    {id:'df-amount',label:'Contract Value ($)',ph:'e.g. 48,000.00'},
+    {id:'df-term',label:'Project Timeline',ph:'e.g. 90 days from execution'},
+    {id:'df-deposit',label:'Deposit / Draw Schedule',ph:'e.g. 30% upfront, 30% at rough-in, 40% on completion'},
+  ],hint:'Describe the renovation project, any special conditions, warranties, or dispute terms to include.'},
+  'Real Estate Purchase Contract':{tone:'corporate',fields:[
+    {id:'df-prop-address',label:'Property Address',ph:'e.g. 812 Canal St, New Orleans, LA 70112'},
+    {id:'df-amount',label:'Purchase Price ($)',ph:'e.g. 480,000.00'},
+    {id:'df-deposit',label:'Earnest Money Deposit ($)',ph:'e.g. 10,000.00'},
+    {id:'df-closing-date',label:'Proposed Closing Date',ph:'e.g. July 15, 2026'},
+    {id:'df-contingencies',label:'Contingencies',ph:'e.g. Financing, inspection, appraisal'},
+    {id:'df-seller',label:'Seller Name / Entity',ph:'e.g. Elsinore Properties LLC'},
+    {id:'df-attorney',label:'Title Company / Attorney',ph:'e.g. Crescent Title & Escrow'},
+    {id:'df-inclusions',label:'Inclusions / Exclusions',ph:'e.g. All fixtures included, kitchen equipment excluded'},
+  ],hint:'Describe the transaction — is this a commercial purchase, are there any special terms, seller concessions, or conditions the contract should reflect?'},
 };
 
 const TONE_DEFAULTS = {
