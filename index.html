@@ -2107,17 +2107,14 @@ Generate ONLY the document text. No commentary, no explanation, no meta-text. Ju
   document.getElementById('gen-doc-btn').disabled = true;
 
   try{
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://us-central1-carpe-noctem-57a6b.cloudfunctions.net/claudeProxy', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
+      body: JSON.stringify({prompt})
     });
     const data = await response.json();
-    const text = data.content?.map(c=>c.text||'').join('') || '';
+    if(data.error){throw new Error(data.error);}
+    const text = data.text || '';
 
     // Parse out subject line if present
     let subject = gv('df-subject');
