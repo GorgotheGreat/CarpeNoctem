@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manager Console</title>
 <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
@@ -144,7 +145,7 @@ select.input option{background:#1c1c1e;}
 .chat-contacts{width:150px;border-right:0.5px solid var(--border2);flex-shrink:0;overflow-y:auto;}
 .chat-contact{padding:10px 12px;border-bottom:0.5px solid var(--border2);cursor:pointer;transition:background .12s;}
 .chat-contact:hover,.chat-contact.active{background:rgba(255,255,255,0.05);}
-.bubble{max-width:78%;padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.bubble{max-width:78%;padding:8px 12px;border-radius:14px;font-size:12px;line-height:1.5;word-break:break-word;}
 .bubble.npc{background:rgba(255,255,255,0.09);border-bottom-left-radius:4px;}
 .bubble.player{background:var(--accent2);color:#fff;border-bottom-right-radius:4px;}
 .bubble.system{background:rgba(255,214,10,0.1);color:var(--amber);font-style:italic;font-size:11px;border-radius:8px;padding:4px 10px;}
@@ -194,6 +195,41 @@ select.input option{background:#1c1c1e;}
 /* ── TOAST ── */
 #toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);background:#1c1c1e;border:0.5px solid var(--border);border-radius:10px;padding:9px 18px;font-size:13px;z-index:9000;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+
+/* ── MARKDOWN RENDERING ── */
+.md-render{line-height:1.7;font-size:inherit;color:inherit;}
+.md-render p{margin:0 0 8px 0;}
+.md-render p:last-child{margin-bottom:0;}
+.md-render strong{font-weight:600;color:inherit;}
+.md-render em{font-style:italic;color:inherit;}
+.md-render blockquote{border-left:3px solid var(--accent2);margin:8px 0;padding:4px 12px;color:var(--text2);font-style:italic;background:rgba(159,111,255,0.06);border-radius:0 4px 4px 0;}
+.md-render ul,.md-render ol{margin:6px 0 8px 16px;padding:0;}
+.md-render li{margin-bottom:3px;}
+.md-render h1,.md-render h2,.md-render h3{font-weight:600;margin:10px 0 6px;color:var(--text);}
+.md-render h1{font-size:16px;}
+.md-render h2{font-size:14px;}
+.md-render h3{font-size:13px;}
+.md-render hr{border:none;border-top:0.5px solid var(--border);margin:10px 0;}
+.md-render code{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px;}
+.md-render pre{background:rgba(0,0,0,0.3);border-radius:var(--radius-xs);padding:10px;overflow-x:auto;margin:6px 0;}
+.md-render pre code{background:none;padding:0;}
+.md-render a{color:var(--accent);text-decoration:underline;}
+.md-render table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0;}
+.md-render th{background:rgba(255,255,255,0.06);padding:6px 10px;text-align:left;border-bottom:0.5px solid var(--border);}
+.md-render td{padding:5px 10px;border-bottom:0.5px solid var(--border2);}
+/* Chat bubble markdown overrides */
+.bubble.player .md-render blockquote{border-left-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.85);}
+.bubble.player .md-render strong,.bubble.player .md-render em{color:#fff;}
+.bubble.player .md-render code{background:rgba(255,255,255,0.15);}
+/* Email body markdown */
+#mv-body .md-render{font-size:13px;}
+/* Doc output preview */
+#doc-output-preview{background:rgba(0,0,0,0.2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;max-height:320px;overflow-y:auto;display:none;margin-top:8px;}
+#doc-output-preview.show{display:block;}
+.preview-toggle{display:flex;gap:8px;margin-bottom:6px;}
+.preview-tab{font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--radius-xs);cursor:pointer;border:0.5px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text3);transition:all .12s;}
+.preview-tab.active{background:rgba(159,111,255,0.15);border-color:var(--accent2);color:var(--accent);}
 
 /* ── DOCUMENT GENERATOR ── */
 .doc-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
@@ -582,7 +618,14 @@ select.input option{background:#1c1c1e;}
               <button class="btn btn-primary btn-sm" id="send-doc-btn" onclick="sendGeneratedDocument()">Send →</button>
             </div>
           </div>
-          <textarea class="gen-output-edit show" id="doc-output-text" spellcheck="true"></textarea>
+          <div class="preview-toggle">
+            <div class="preview-tab active" id="tab-edit" onclick="switchDocTab('edit')">✏️ Edit</div>
+            <div class="preview-tab" id="tab-preview" onclick="switchDocTab('preview')">👁 Preview</div>
+            <div style="flex:1"></div>
+            <span style="font-size:10px;color:var(--text3);align-self:center">Markdown supported — **bold**, *italic*, > quote, - list</span>
+          </div>
+          <textarea class="gen-output-edit show" id="doc-output-text" spellcheck="true" oninput="livePreview()"></textarea>
+          <div id="doc-output-preview" class="md-render"></div>
           <div id="doc-subject-wrap" style="margin-top:8px;display:none">
             <label>Subject line</label>
             <input class="input" id="doc-output-subject" style="font-size:12px;padding:5px 9px">
@@ -597,6 +640,18 @@ select.input option{background:#1c1c1e;}
 </div><!-- #app -->
 
 <script>
+
+// ── MARKDOWN RENDERER ────────────────────────────────
+// Configure marked.js (loaded from CDN)
+function mdRender(text){
+  if(!text)return '';
+  if(typeof marked==='undefined')return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  try{
+    marked.use({breaks:true,gfm:true});
+    return marked.parse(text);
+  }catch(e){return text.replace(/\n/g,'<br>');}
+}
+
 // ═══════════════════════════════════════════════════
 //  FIREBASE BOOT
 // ═══════════════════════════════════════════════════
@@ -970,7 +1025,8 @@ function openEmail(idx,key){
   document.getElementById('mv-time').textContent=m.time||'';
   let body=m.body||'';
   if(m.replies){const ra=Array.isArray(m.replies)?m.replies:Object.values(m.replies);ra.forEach(r=>{body+='\n\n── Your Reply ──\n'+r;});}
-  document.getElementById('mv-body').textContent=body;
+  const mvBody=document.getElementById('mv-body');
+  mvBody.innerHTML='<div class="md-render">'+mdRender(body)+'</div>';
 }
 function backMail(){
   document.getElementById('mail-list-wrap').style.display='';
@@ -1255,13 +1311,16 @@ function renderChatMsgs(){
     if(m.type==='system'){
       const sysBubble=document.createElement('div');
       sysBubble.className='bubble system';
-      sysBubble.textContent=m.text||'';
+      sysBubble.innerHTML=mdRender(m.text||'');
       d.appendChild(sysBubble);
     } else {
       const bubbleWrap=document.createElement('div');
       const bubble=document.createElement('div');
       bubble.className='bubble '+(m.sender==='player'?'player':'npc');
-      bubble.textContent=m.text||'';
+      const mdDiv=document.createElement('div');
+      mdDiv.className='md-render';
+      mdDiv.innerHTML=mdRender(m.text||'');
+      bubble.appendChild(mdDiv);
       const ts=document.createElement('div');
       ts.style.cssText='font-size:9px;color:var(--text3);margin-top:2px;text-align:'+(m.sender==='player'?'right':'left');
       ts.textContent=m.time||'';
@@ -2155,6 +2214,29 @@ Generate ONLY the document text. No commentary, no explanation, no meta-text. Ju
   } finally {
     document.getElementById('gen-pulse').classList.remove('show');
     document.getElementById('gen-doc-btn').disabled = false;
+  }
+}
+
+function switchDocTab(tab){
+  const editEl=document.getElementById('doc-output-text');
+  const previewEl=document.getElementById('doc-output-preview');
+  const tabEdit=document.getElementById('tab-edit');
+  const tabPreview=document.getElementById('tab-preview');
+  if(tab==='edit'){
+    editEl.classList.add('show');previewEl.classList.remove('show');
+    tabEdit.classList.add('active');tabPreview.classList.remove('active');
+  } else {
+    previewEl.innerHTML='<div class="md-render">'+mdRender(editEl.value)+'</div>';
+    previewEl.classList.add('show');editEl.classList.remove('show');
+    tabEdit.classList.remove('active');tabPreview.classList.add('active');
+  }
+}
+
+function livePreview(){
+  // Keep preview in sync if it's visible
+  const previewEl=document.getElementById('doc-output-preview');
+  if(previewEl&&previewEl.classList.contains('show')){
+    previewEl.innerHTML='<div class="md-render">'+mdRender(document.getElementById('doc-output-text').value)+'</div>';
   }
 }
 
