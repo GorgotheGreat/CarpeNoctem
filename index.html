@@ -197,6 +197,21 @@ select.input option{background:#1c1c1e;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 
+
+/* ── ST MONITOR / INBOX ── */
+.st-monitor-feed{max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0;}
+.st-feed-item{padding:10px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:rgba(255,255,255,0.03);position:relative;}
+.st-feed-item.unread-reply{border-color:rgba(255,214,10,0.4);background:rgba(255,214,10,0.05);}
+.st-feed-item.player-msg{border-color:rgba(52,199,89,0.3);background:rgba(52,199,89,0.04);}
+.st-feed-meta{font-size:10px;color:var(--text3);margin-bottom:4px;display:flex;gap:8px;align-items:center;}
+.st-feed-body{font-size:12px;color:var(--text2);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.st-alert-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--amber);color:#000;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;margin-left:6px;animation:pulse 1s infinite;}
+/* Contact quick-action buttons */
+.contact-actions{display:flex;gap:5px;margin-top:6px;}
+/* Mark unread button */
+.mark-unread-btn{font-size:10px;padding:2px 7px;cursor:pointer;border-radius:3px;border:0.5px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text3);transition:all .12s;}
+.mark-unread-btn:hover{background:rgba(255,214,10,0.1);border-color:var(--amber);color:var(--amber);}
+
 /* ── MARKDOWN RENDERING ── */
 .md-render{line-height:1.7;font-size:inherit;color:inherit;}
 .md-render p{margin:0 0 8px 0;}
@@ -487,6 +502,35 @@ select.input option{background:#1c1c1e;}
       </div>
 
 
+      <!-- ST Monitor: Full Activity Feed -->
+      <div class="st-card st-full" style="border-color:rgba(10,132,255,0.2)">
+        <h2>👁 ST Monitor — All Activity <span id="st-alert-count" class="st-alert-badge" style="display:none">0</span></h2>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="filterMonitor('all')" id="mon-all" style="font-size:10px">All</button>
+          <button class="btn btn-sm" onclick="filterMonitor('replies')" id="mon-replies" style="font-size:10px">Player Replies ⚡</button>
+          <button class="btn btn-sm" onclick="filterMonitor('email')" id="mon-email" style="font-size:10px">Emails</button>
+          <button class="btn btn-sm" onclick="filterMonitor('chat')" id="mon-chat" style="font-size:10px">Chat</button>
+          <button class="btn btn-sm" style="font-size:10px;margin-left:auto" onclick="clearSTAlerts()">Mark all read</button>
+        </div>
+        <div class="st-monitor-feed" id="st-monitor-feed">
+          <div style="color:var(--text3);font-size:12px;padding:12px 0">No activity yet</div>
+        </div>
+      </div>
+
+      <!-- ST Bank View -->
+      <div class="st-card st-full" style="border-color:rgba(52,199,89,0.15)">
+        <h2>💵 Bank Overview (ST View)</h2>
+        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+          <select class="input" id="st-bank-acct-select" style="font-size:12px;padding:5px 8px;max-width:220px" onchange="renderSTBankView()">
+            <option value="">— All accounts —</option>
+          </select>
+          <span style="font-size:11px;color:var(--text2)">Balance: <span id="st-bank-balance" style="font-family:var(--mono);color:var(--green)">$0.00</span></span>
+          <span style="font-size:11px;color:var(--text2);margin-left:8px">In: <span id="st-bank-in" style="color:var(--green);font-family:var(--mono)">$0</span></span>
+          <span style="font-size:11px;color:var(--text2);margin-left:8px">Out: <span id="st-bank-out" style="color:var(--red);font-family:var(--mono)">$0</span></span>
+        </div>
+        <div id="st-bank-feed" style="max-height:280px;overflow-y:auto"></div>
+      </div>
+
       <!-- AI Document Generator -->
       <div class="st-card st-full" style="border-color:rgba(10,132,255,0.25)">
         <h2>🤖 AI Document Generator</h2>
@@ -524,6 +568,8 @@ select.input option{background:#1c1c1e;}
           <div class="doc-type-btn" onclick="selectDocType(this,'Insurance Policy Notice')">Insurance Policy Notice</div>
           <div class="doc-type-btn" onclick="selectDocType(this,'Contractor Agreement (Renovation)')">Contractor Agreement</div>
           <div class="doc-type-btn" onclick="selectDocType(this,'Real Estate Purchase Contract')">Real Estate Purchase Contract</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'Inbound Shipping Notification')">Inbound Shipping Notice</div>
+          <div class="doc-type-btn" onclick="selectDocType(this,'Outbound Shipping Manifest')">Outbound Shipping Manifest</div>
         </div>
         <div class="doc-cat-label">Alerts & Notifications (text/short)</div>
         <div class="doc-type-grid">
@@ -568,6 +614,15 @@ select.input option{background:#1c1c1e;}
 
         <!-- Dynamic fields injected here -->
         <div id="doc-dynamic-fields"></div>
+
+        <!-- Shipping direction (shown only for shipping docs) -->
+        <div id="shipping-direction-wrap" style="display:none;margin-bottom:12px">
+          <label>Shipping Direction</label>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <div class="tone-btn active" id="ship-inbound" onclick="selectShipDir('inbound')" style="flex:none;padding:6px 16px;border-radius:var(--radius-xs);border:0.5px solid var(--border)">📦 To Player (inbound)</div>
+            <div class="tone-btn" id="ship-outbound" onclick="selectShipDir('outbound')" style="flex:none;padding:6px 16px;border-radius:var(--radius-xs);border:0.5px solid var(--border)">🚚 On Behalf of Player (outbound)</div>
+          </div>
+        </div>
 
         <!-- Synopsis -->
         <div class="form-row full">
@@ -831,7 +886,8 @@ mail:{icon:'✉️',title:'Inbox',
     <div class="email-view" id="mail-view">
       <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:0.5px solid var(--border2)">
         <button class="btn btn-sm" onclick="backMail()">← Back</button>
-        <span id="mv-from" style="font-size:12px;color:var(--text2)"></span>
+        <span id="mv-from" style="font-size:12px;color:var(--text2);flex:1"></span>
+        <button class="mark-unread-btn" id="mark-unread-btn" onclick="markEmailUnread()" title="Mark as unread">● Mark unread</button>
       </div>
       <div style="padding:12px 16px;border-bottom:0.5px solid var(--border2)">
         <div id="mv-subj" style="font-size:15px;font-weight:600"></div>
@@ -1619,8 +1675,14 @@ function renderRolodex(){
         <div style="font-size:11px;color:var(--text3)">${c.role||''}${c.phone?' &middot; '+c.phone:''}</div>
         ${c.notes?`<div style="font-size:11px;color:var(--text2);margin-top:2px">${c.notes}</div>`:''}
       </div>
-      <button class="btn btn-sm" onclick="openContactModal('${c._k}',_contacts.find(x=>x._k==='${c._k}')||{})">Edit</button>
-      <span class="del-btn" onclick="if(confirm('Delete?'))dbDel('contacts/${c._k}')">&#x2715;</span>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px" onclick="quickEmailContact('${c._k}')">&#x2709;&#xFE0F; Email</button>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px" onclick="quickChatContact('${c._k}')">&#x1F4AC; Msg</button>
+          <button class="btn btn-sm" style="font-size:10px;padding:3px 8px" onclick="openContactModal('${c._k}',_contacts.find(x=>x._k==='${c._k}')||{})">Edit</button>
+        </div>
+        <span class="del-btn" style="opacity:1;font-size:11px" onclick="if(confirm('Delete?'))dbDel('contacts/${c._k}')">&#x2715; Delete</span>
+      </div>
     `;
     list.appendChild(d);
   });
@@ -1814,6 +1876,7 @@ function checkPass(){
       document.getElementById('st-body').style.display='block';
       dbGet('config',c=>{if(c&&c.name){const el=document.getElementById('cfg-name');if(el)el.value=c.name;}});
       renderSTInv();updateMenuAvg();renderSTAccountDropdown();
+      initSTMonitor();renderSTBankSelect();renderSTBankView();
     } else {
       document.getElementById('st-pass-err').style.display='block';
     }
@@ -2040,6 +2103,23 @@ const DOC_CONFIGS = {
     {id:'df-payee',label:'Payee / Vendor',ph:'e.g. Lux Spirits Distribution'},
     {id:'df-retry',label:'Retry Date (if any)',ph:'e.g. May 28, 2026'},
   ],hint:'Why did it fail and what are the next steps?'},
+  'Inbound Shipping Notification':{tone:'business',fields:[
+    {id:'df-tracking',label:'Tracking Number',ph:'e.g. 1Z999AA10123456784'},
+    {id:'df-carrier',label:'Carrier',ph:'e.g. UPS, FedEx, USPS, Freight'},
+    {id:'df-items',label:'Contents / Items',ph:'e.g. 6 cases Hendricks Gin, bar equipment'},
+    {id:'df-vendor',label:'Shipped From / Vendor',ph:'e.g. Anchor Supply Co.'},
+    {id:'df-sched-date',label:'Expected Delivery Date',ph:'e.g. May 27, 2026'},
+    {id:'df-amount',label:'Order Value ($)',ph:'e.g. 1,240.00'},
+  ],hint:'Describe what is being shipped to the character, any special handling instructions, or delivery notes.'},
+  'Outbound Shipping Manifest':{tone:'business',fields:[
+    {id:'df-tracking',label:'Tracking Number',ph:'e.g. 1Z999AA10123456784'},
+    {id:'df-carrier',label:'Carrier / Service',ph:'e.g. UPS Ground, FedEx Freight'},
+    {id:'df-items',label:'Items / Contents',ph:'e.g. Bar equipment, furniture, supplies'},
+    {id:'df-ship-to',label:'Ship To (destination)',ph:'e.g. Second location — 812 Canal St'},
+    {id:'df-sched-date',label:'Estimated Arrival',ph:'e.g. May 30, 2026'},
+    {id:'df-amount',label:'Declared Value ($)',ph:'e.g. 8,400.00'},
+    {id:'df-special',label:'Special Instructions',ph:'e.g. Fragile, Liftgate required, Call ahead'},
+  ],hint:'Describe what the character is shipping, on whose behalf, and the purpose of the shipment.'},
   'Contractor Agreement (Renovation)':{tone:'corporate',fields:[
     {id:'df-contractor',label:'Contractor Name / Company',ph:'e.g. Gulf Coast Renovations LLC'},
     {id:'df-license-num',label:'Contractor License #',ph:'e.g. LA-GC-2024-8821'},
@@ -2102,6 +2182,10 @@ function selectDocType(el, type){
   // Reset output
   document.getElementById('doc-output-wrap').style.display = 'none';
   document.getElementById('gen-pulse').classList.remove('show');
+  // Show shipping direction toggle for shipping doc types
+  const isShipping=type.includes('Shipping');
+  const shipWrap=document.getElementById('shipping-direction-wrap');
+  if(shipWrap)shipWrap.style.display=isShipping?'':'none';
 }
 
 function selectTone(tone){
@@ -2154,13 +2238,19 @@ async function generateDocument(){
   };
 
   const isTextAlert = _selectedDocType.includes('Text') || _selectedDocType.includes('Alert') || _selectedDocType.includes('Reminder') || _selectedDocType.includes('Notification');
+  // Include shipping direction in prompt for shipping docs
+  const isShipping=_selectedDocType&&_selectedDocType.includes('Shipping');
+  const shipNote=isShipping?(_shipDir==='inbound'
+    ?'\n\nSHIPPING DIRECTION: This notification is being sent TO the character (inbound delivery). Write it as if from the carrier or vendor notifying them of incoming shipment.'
+    :'\n\nSHIPPING DIRECTION: This is a manifest/copy being sent ON BEHALF OF the character (outbound). Write it as a shipping confirmation or manifest for something the character is sending.'):'';
+
   const formatNote = isTextAlert
     ? 'Format this as a SHORT text message or SMS alert — 1-3 sentences maximum, no salutation, no sign-off.'
     : _selectedDelivery === 'chat'
     ? 'Format this as a concise direct message — 2-4 sentences, conversational but professional.'
     : 'Format this as a complete, properly structured email or letter with appropriate salutation, body paragraphs, and sign-off.';
 
-  const prompt = `You are generating a fictional business document for a tabletop RPG chronicle. This document will be sent to a player as in-game correspondence. Make it feel completely authentic and realistic.
+  const prompt = `You are generating a fictional business document for a tabletop RPG chronicle.${shipNote} This document will be sent to a player as in-game correspondence. Make it feel completely authentic and realistic.
 
 DOCUMENT TYPE: ${_selectedDocType}
 TONE: ${toneDescriptions[_selectedTone]}
@@ -2266,6 +2356,292 @@ function sendGeneratedDocument(){
     document.getElementById('doc-output-text').value='';
   }, 800);
 }
+
+// ═══════════════════════════════════════════════════
+//  MARK EMAIL UNREAD
+// ═══════════════════════════════════════════════════
+function markEmailUnread(){
+  if(!_currentEmail)return;
+  dbSet('emails/'+_currentEmail.key+'/read',false);
+  showToast('Marked as unread');
+  backMail();
+}
+
+// ═══════════════════════════════════════════════════
+//  CONTACT QUICK ACTIONS
+// ═══════════════════════════════════════════════════
+function quickEmailContact(key){
+  const c=_contacts.find(x=>x._k===key);
+  if(!c)return;
+  // If ST panel is open and unlocked, pre-fill ST email composer
+  if(document.getElementById('st-panel').classList.contains('show')&&_stUnlocked){
+    const fromEl=document.getElementById('se-from');
+    if(fromEl)fromEl.value=c.name+(c.role?' — '+c.role:'');
+    showToast('Sender pre-filled: '+c.name);
+    document.getElementById('se-subj').focus();
+  } else {
+    // Player side — open compose modal
+    showModal(`
+      <h2>✉️ Email ${c.name}</h2>
+      <div class="form-row"><label>Subject</label><input class="input" id="qe-subj" placeholder="Subject…"></div>
+      <div class="form-row"><label>Message</label><textarea class="input" id="qe-body" style="min-height:100px" placeholder="Write your message…"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="playerEmailContact('${key}','${c.name.replace(/'/g,"\\'")}')">Send</button>
+      </div>
+    `);
+  }
+}
+
+function playerEmailContact(key,name){
+  const subj=gv('qe-subj').trim();
+  const body=gv('qe-body').trim();
+  if(!body){showToast('Write a message first');return;}
+  // Store as a player-sent email in Firebase so ST sees it
+  dbPush('player_outbox',{to:name,toKey:key,subject:subj||'(no subject)',body,time:new Date().toLocaleString(),_ts:Date.now()});
+  // Alert ST
+  dbPush('st_alerts',{type:'player_email',text:'Player emailed '+name+(subj?' re: '+subj:''),time:nowTime(),read:false,_ts:Date.now()});
+  closeModal();
+  showToast('Message sent to '+name);
+}
+
+function quickChatContact(key){
+  const c=_contacts.find(x=>x._k===key);
+  if(!c)return;
+  if(document.getElementById('st-panel').classList.contains('show')&&_stUnlocked){
+    // Pre-fill ST chat composer
+    const fromEl=document.getElementById('sc-from');
+    if(fromEl)fromEl.value=c.name;
+    showToast('Contact set: '+c.name);
+    document.getElementById('sc-msg').focus();
+  } else {
+    // Player side — open chat with this contact
+    if(_wins['chat']){
+      _activeContact=c.name;
+      renderChat();
+      bringFront(_wins['chat']);
+    } else {
+      openApp('chat');
+      setTimeout(()=>{_activeContact=c.name;renderChat();},300);
+    }
+    // Alert ST that player opened chat with this contact
+    dbPush('st_alerts',{type:'player_chat_open',text:'Player opened chat with '+c.name,time:nowTime(),read:false,_ts:Date.now()});
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  ST MONITOR FEED
+// ═══════════════════════════════════════════════════
+let _monitorFilter='all';
+let _stAlerts=[];
+let _playerOutbox=[];
+let _stEmailsCopy=[];
+let _stChatCopy=[];
+
+function initSTMonitor(){
+  // Watch player outbox (player-initiated emails)
+  dbListen('mon_outbox','player_outbox',v=>{
+    _playerOutbox=toArrD(v);
+    renderSTMonitor();
+  });
+  // Watch ST alerts (player replies, chat opens, etc.)
+  dbListen('mon_alerts','st_alerts',v=>{
+    _stAlerts=toArrD(v);
+    updateSTAlertBadge();
+    renderSTMonitor();
+  });
+  // Watch emails for player replies
+  dbListen('mon_emails','emails',v=>{
+    _stEmailsCopy=toArrD(v);
+    renderSTMonitor();
+  });
+  // Watch chat for player messages
+  dbListen('mon_chat','chat_msgs',v=>{
+    _stChatCopy=toArr(v);
+    renderSTMonitor();
+  });
+  // Watch accounts for ST bank view
+  dbListen('st_bank_accts','accounts',v=>{
+    _accounts=toArr(v);
+    renderSTBankSelect();
+    renderSTBankView();
+  });
+  dbListen('st_bank_txs','transactions',v=>{
+    _txs=toArrD(v);
+    renderSTBankView();
+  });
+}
+
+function renderSTMonitor(){
+  const el=document.getElementById('st-monitor-feed');if(!el)return;
+  let items=[];
+
+  // Player replies to emails
+  _stEmailsCopy.forEach(email=>{
+    if(email.replies){
+      const replies=Array.isArray(email.replies)?email.replies:Object.values(email.replies);
+      replies.forEach(r=>{
+        items.push({
+          type:'email_reply',
+          label:'📧 Player replied to "'+email.subject+'"',
+          from:'Player → '+email.from,
+          body:r,
+          time:email.time||'',
+          ts:email._ts||0,
+          isPlayer:true,
+        });
+      });
+    }
+  });
+
+  // Player chat messages
+  _stChatCopy.filter(m=>m.sender==='player').forEach(m=>{
+    items.push({
+      type:'chat',
+      label:'💬 Player → '+m.contact,
+      from:'Player',
+      body:m.text||'',
+      time:m.time||'',
+      ts:m._ts||0,
+      isPlayer:true,
+    });
+  });
+
+  // Player-initiated emails (via contact quick action)
+  _playerOutbox.forEach(m=>{
+    items.push({
+      type:'player_email',
+      label:'✉️ Player emailed '+m.to,
+      from:'Player',
+      body:(m.subject?'Re: '+m.subject+'\n':'')+m.body,
+      time:m.time||'',
+      ts:m._ts||0,
+      isPlayer:true,
+    });
+  });
+
+  // ST alerts
+  _stAlerts.forEach(a=>{
+    items.push({
+      type:'alert',
+      label:'⚡ '+a.text,
+      from:'System',
+      body:'',
+      time:a.time||'',
+      ts:a._ts||0,
+      isAlert:true,
+      key:a._k,
+      read:a.read,
+    });
+  });
+
+  // Sort newest first
+  items.sort((a,b)=>b.ts-a.ts);
+
+  // Filter
+  if(_monitorFilter==='replies') items=items.filter(i=>i.type==='email_reply');
+  else if(_monitorFilter==='email') items=items.filter(i=>i.type==='email_reply'||i.type==='player_email');
+  else if(_monitorFilter==='chat') items=items.filter(i=>i.type==='chat');
+
+  el.innerHTML=items.length?'':'<div style="color:var(--text3);font-size:12px;padding:12px 0">No activity yet</div>';
+  items.forEach(item=>{
+    const d=document.createElement('div');
+    d.className='st-feed-item'+(item.isPlayer?' player-msg':'')+(item.isAlert&&!item.read?' unread-reply':'');
+    d.innerHTML=`
+      <div class="st-feed-meta">
+        <span style="font-weight:500;color:var(--text2)">${item.label}</span>
+        <span>${item.time}</span>
+        ${item.isAlert&&!item.read?'<span style="color:var(--amber);font-size:9px">NEW</span>':''}
+      </div>
+      ${item.body?`<div class="st-feed-body">${item.body.slice(0,200)}${item.body.length>200?'…':''}</div>`:''}
+    `;
+    el.appendChild(d);
+  });
+}
+
+function filterMonitor(f){
+  _monitorFilter=f;
+  ['all','replies','email','chat'].forEach(k=>{
+    const el=document.getElementById('mon-'+k);
+    if(el)el.style.background=k===f?'rgba(159,111,255,0.15)':'';
+  });
+  renderSTMonitor();
+}
+
+function clearSTAlerts(){
+  _stAlerts.forEach(a=>{if(a._k)dbSet('st_alerts/'+a._k+'/read',true);});
+  const b=document.getElementById('st-alert-count');if(b)b.style.display='none';
+  showToast('All marked read');
+}
+
+function updateSTAlertBadge(){
+  const unread=_stAlerts.filter(a=>!a.read).length;
+  const b=document.getElementById('st-alert-count');
+  if(b){b.textContent=unread||'';b.style.display=unread?'inline-flex':'none';}
+}
+
+// ═══════════════════════════════════════════════════
+//  ST BANK VIEW
+// ═══════════════════════════════════════════════════
+function renderSTBankSelect(){
+  const sel=document.getElementById('st-bank-acct-select');if(!sel)return;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— All accounts —</option>';
+  _accounts.forEach(a=>{
+    const o=document.createElement('option');
+    o.value=a._k;o.textContent=a.name+(a.type?' ('+a.type+')':'');
+    if(a._k===prev)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function renderSTBankView(){
+  const sel=document.getElementById('st-bank-acct-select');
+  const acctId=sel?sel.value:'';
+  const txs=acctId?_txs.filter(t=>t.accountId===acctId):_txs;
+  const acct=acctId?_accounts.find(a=>a._k===acctId):null;
+  const startBal=acct?acct.startingBalance||0:_accounts.reduce((s,a)=>s+(a.startingBalance||0),0);
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const bal=startBal+inc-exp;
+
+  const balEl=document.getElementById('st-bank-balance');if(balEl){balEl.textContent=fmt(bal);balEl.style.color=bal>=0?'var(--green)':'var(--red)';}
+  const inEl=document.getElementById('st-bank-in');if(inEl)inEl.textContent=fmt(inc);
+  const outEl=document.getElementById('st-bank-out');if(outEl)outEl.textContent=fmt(exp);
+
+  const feed=document.getElementById('st-bank-feed');if(!feed)return;
+  feed.innerHTML=txs.length?'':'<div style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No transactions</div>';
+  txs.forEach(t=>{
+    const acctName=_accounts.find(a=>a._k===t.accountId);
+    const d=document.createElement('div');d.className='tx-row';
+    d.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:0.5px solid var(--border2);';
+    d.innerHTML=`
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px">${t.type==='income'?'🟢':'🔴'} ${t.label||''}</div>
+        <div style="font-size:10px;color:var(--text3)">${t.date||''}${acctName&&!acctId?' · '+acctName.name:''}</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmt(t.amount||0)}</div>
+    `;
+    feed.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  SHIPPING DIRECTION
+// ═══════════════════════════════════════════════════
+let _shipDir='inbound';
+function selectShipDir(dir){
+  _shipDir=dir;
+  ['inbound','outbound'].forEach(d=>{
+    const el=document.getElementById('ship-'+d);
+    if(el)el.classList.toggle('active',d===dir);
+  });
+}
+
+// Show/hide shipping direction when shipping doc selected
+const _origSelectDocType=selectDocType;
+// Patch selectDocType to also handle shipping direction visibility
+const _origSelectDocTypeFn=window.selectDocType;
 
 bootApp();
 </script>
