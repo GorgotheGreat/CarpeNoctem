@@ -2136,15 +2136,15 @@ function saveIncident(){
 }
 
 // SCHEDULE
-const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const SCHED_DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 function renderSched(){
   const el=document.getElementById('sched-grid');if(!el)return;
   if(!_staff.length){el.innerHTML='<div style="padding:22px;text-align:center;color:var(--text3);font-size:13px">Add staff first</div>';return;}
   let h='<div class="sched-grid"><div class="sc hd"></div>';
-  DAYS.forEach(d=>h+=`<div class="sc hd">${d}</div>`);
+  SCHED_DAYS.forEach(d=>h+=`<div class="sc hd">${d}</div>`);
   _staff.forEach(s=>{
     h+=`<div class="sc nm">${s.name||''}</div>`;
-    DAYS.forEach(day=>{
+    SCHED_DAYS.forEach(day=>{
       const key=(s.name+'_'+day).replace(/\W/g,'_');
       const shift=_sched[key]||'';
       const chips={
@@ -2163,7 +2163,7 @@ function openEditSchedule(){
   let rows='';
   _staff.forEach(s=>{
     rows+=`<tr><td style="font-size:11px;color:var(--text2);padding:3px 6px;white-space:nowrap">${s.name||''}</td>`;
-    DAYS.forEach(day=>{
+    SCHED_DAYS.forEach(day=>{
       const key=(s.name+'_'+day).replace(/\W/g,'_');
       rows+=`<td style="padding:2px"><select class="input" id="sc_${key}" style="font-size:10px;padding:2px 3px;width:52px">
         <option value="">&#x2014;</option>
@@ -2178,7 +2178,7 @@ function openEditSchedule(){
   showModal(`
     <h2>Edit Weekly Schedule</h2>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
-      <thead><tr><th></th>${DAYS.map(d=>`<th style="font-size:10px;color:var(--text3);padding:3px 2px">${d}</th>`).join('')}</tr></thead>
+      <thead><tr><th></th>${SCHED_DAYS.map(d=>`<th style="font-size:10px;color:var(--text3);padding:3px 2px">${d}</th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
     <div style="font-size:10px;color:var(--text3);margin-top:6px">O=Open &middot; M=Mid &middot; C=Close</div>
@@ -2188,7 +2188,7 @@ function openEditSchedule(){
 function saveSched(){
   const s={};
   _staff.forEach(st=>{
-    DAYS.forEach(day=>{
+    SCHED_DAYS.forEach(day=>{
       const key=(st.name+'_'+day).replace(/\W/g,'_');
       const el=document.getElementById('sc_'+key);
       if(el&&el.value)s[key]=el.value;
