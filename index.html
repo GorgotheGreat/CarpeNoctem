@@ -601,6 +601,7 @@ select.input option{background:#1c1c1e;}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="stSaveCfg()">Save Config</button>
           <button class="btn btn-danger" onclick="confirmClear()">⚠ Reset All Data</button>
+          <button class="btn btn-sm" style="font-size:10px" onclick="purgeBadEvents()">🧹 Purge ghost events</button>
         </div>
         <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm)">
           <div style="font-size:11px;color:var(--text3)">Menu Avg Spend Analysis</div>
@@ -735,6 +736,24 @@ select.input option{background:#1c1c1e;}
         </div>
       </div>
 
+      <!-- ST Calendar View -->
+      <div class="st-card st-full" style="border-color:rgba(42,26,106,0.4)">
+        <h2>🗓️ Calendar View (ST)</h2>
+        <div class="cal-toolbar" style="padding:6px 0;border:none;margin-bottom:8px">
+          <div class="cal-view-btns">
+            <div class="cal-view-btn active" id="st-cv-week" onclick="setSTCalView('week')">Week</div>
+            <div class="cal-view-btn" id="st-cv-month" onclick="setSTCalView('month')">Month</div>
+            <div class="cal-view-btn" id="st-cv-list" onclick="setSTCalView('list')">List</div>
+          </div>
+          <div class="cal-nav" style="margin-left:12px">
+            <button class="cal-nav-btn" onclick="stCalNav(-1)">‹</button>
+            <div class="cal-period-label" id="st-cal-period" style="min-width:80px">Week 1</div>
+            <button class="cal-nav-btn" onclick="stCalNav(1)">›</button>
+          </div>
+        </div>
+        <div id="st-cal-view" style="min-height:340px;max-height:500px;overflow:auto;border:0.5px solid var(--border2);border-radius:var(--radius-sm)"></div>
+      </div>
+
       <!-- AI Document Generator -->
       <div class="st-card st-full" style="border-color:rgba(10,132,255,0.25)">
         <h2>🤖 AI Document Generator</h2>
@@ -858,7 +877,8 @@ select.input option{background:#1c1c1e;}
 
         <!-- Generate button -->
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-primary" id="gen-doc-btn" onclick="generateDocument()" style="opacity:0.4;cursor:not-allowed" disabled>Generate Document</button>
+          <button class="btn btn-primary" id="gen-doc-btn" onclick="generateDocument()" style="opacity:0.4;cursor:not-allowed" disabled>🤖 Generate with AI</button>
+          <button class="btn" id="send-raw-btn" onclick="sendRawDocument()" style="opacity:0.4;cursor:not-allowed;border-color:rgba(52,199,89,0.4);color:var(--green)" disabled>✉️ Send Pre-filled (no AI)</button>
           <span id="doc-type-display" style="font-size:11px;color:var(--text3)">Select a document type to begin</span>
         </div>
 
@@ -1196,8 +1216,8 @@ function stAddNoteModal(key){
     <div class="form-row"><label>Note (markdown OK)</label><textarea class="input" id="st-note-txt" style="min-height:80px">${e.stNote||''}</textarea></div>
     <div class="form-row"><label>Reveal to player?</label>
       <select class="input" id="st-note-reveal">
-        <option value="true" ${e.stNoteRevealed?'selected':''}>Yes — show now</option>
-        <option value="false" ${!e.stNoteRevealed?'selected':''}>No — ST only</option>
+        <option value="false" ${!e.stNoteRevealed?'selected':''}>No — ST only (default)</option>
+        <option value="true" ${e.stNoteRevealed?'selected':''}>Yes — reveal to player</option>
       </select>
     </div>
     <div class="modal-actions">
@@ -1215,45 +1235,112 @@ function saveSTNote(key){
 
 function stSendMeetingRequestEmail(key){
   const e=_events.find(x=>x._k===key);if(!e)return;
-  dbSet('events/'+key+'/status','pending-player');
-  dbSet('events/'+key+'/meetingRequestSent',true);
-  openMeetingRequestDocGen(e);
-  showToast('Status set to pending — generate and send the email below');
-}
-
-function stEditEventModal(key){
-  const e=_events.find(x=>x._k===key);if(!e)return;
+  window._meetEmailEventKey=key;
   showModal(`
-    <h2>✏️ Edit Event</h2>
-    <div class="form-row"><label>Title</label><input class="input" id="ee-title" value="${e.title||''}"></div>
-    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label>Time</label><input class="input" id="ee-time" value="${e.time||''}"></div>
-      <div><label>Status</label>
-        <select class="input" id="ee-status">
-          ${['upcoming','confirmed','pending-player','completed','cancelled','eyesonly'].map(s=>`<option value="${s}"${e.status===s?' selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
+    <h2>📧 Send Meeting Request</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Send a meeting request to the player for: <strong>${e.title||'this event'}</strong></p>
+    <div class="form-row"><label>From (sender name)</label><input class="input" id="mre-from" value="${e.attendeesExternal?e.attendeesExternal.split(',')[0].trim()+' — Office':'Management Office'}"></div>
+    <div class="form-row"><label>Subject</label><input class="input" id="mre-subj" value="Meeting Request: ${e.title||''}"></div>
+    <div class="form-row"><label>Message</label>
+      <textarea class="input" id="mre-body" style="min-height:120px">You are requested to attend the following meeting:
+
+**${e.title||'Meeting'}**
+${e.time&&e.time!=='TBD'?'Time: '+e.time:''}
+${e.location?'Location: '+e.location:''}
+${e.attendeesInternal?'Internal: '+e.attendeesInternal:''}
+${e.attendeesExternal?'External: '+e.attendeesExternal:''}
+${e.timeRef?'\n'+e.timeRef:''}
+${e.description?'\n'+e.description:''}
+
+Please confirm your attendance at your earliest convenience.</textarea>
     </div>
-    <div class="form-row"><label>Time Reference</label><input class="input" id="ee-timeref" value="${e.timeRef||''}"></div>
-    <div class="form-row"><label>Location</label><input class="input" id="ee-location" value="${e.location||''}"></div>
-    <div class="form-row"><label>Internal Attendees</label><input class="input" id="ee-int" value="${e.attendeesInternal||''}"></div>
-    <div class="form-row"><label>External Attendees</label><input class="input" id="ee-ext" value="${e.attendeesExternal||''}"></div>
-    <div class="form-row"><label>Description</label><textarea class="input" id="ee-desc" style="min-height:60px">${e.description||''}</textarea></div>
+    <div class="form-row"><label>Priority</label>
+      <select class="input" id="mre-pri"><option value="normal">Normal</option><option value="urgent">Urgent</option></select>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Or use the AI Document Generator for a more polished version: <button class="btn btn-sm" style="font-size:10px" onclick="closeModal();openMeetingRequestDocGen(_events.find(x=>x._k===window._meetEmailEventKey)||{})">Open Doc Generator</button></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveEditEvent('${key}')">Save</button>
+      <button class="btn btn-primary" onclick="sendMeetingEmailDirect()">Send →</button>
     </div>
   `);
 }
 
-function saveEditEvent(key){
+function sendMeetingEmailDirect(){
+  const key=window._meetEmailEventKey;if(!key)return;
+  const from=gv('mre-from').trim()||'Management';
+  const subj=gv('mre-subj').trim()||'Meeting Request';
+  const body=gv('mre-body').trim();
+  const pri=gv('mre-pri')||'normal';
+  dbPush('emails',{from,subject:subj,body,priority:pri,time:new Date().toLocaleString(),read:false,_ts:Date.now()});
+  dbSet('events/'+key+'/status','pending-player');
+  dbSet('events/'+key+'/meetingRequestSent',true);
+  window._meetEmailEventKey=null;
+  closeModal();
+  showToast('Meeting request sent to player inbox');
+}
+
+function stEditEventModal(key){
+  const e=_events.find(x=>x._k===key);if(!e)return;
+  // Store key globally to avoid quote escaping issues in onclick
+  window._editingEventKey=key;
+  const statusOpts=['upcoming','confirmed','pending-player','completed','cancelled','eyesonly']
+    .map(s=>`<option value="${s}"${e.status===s?' selected':''}>${s}</option>`).join('');
+  showModal(`
+    <h2>✏️ Edit Event</h2>
+    <div class="form-row"><label>Title</label><input class="input" id="ee-title"></div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label>Time (HH:MM AM/PM)</label><input class="input" id="ee-time"></div>
+      <div><label>Status</label><select class="input" id="ee-status">${statusOpts}</select></div>
+    </div>
+    <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label>Day</label>
+        <select class="input" id="ee-day">
+          ${DAYS.map((d,i)=>`<option value="${i}"${(e.day||0)===i?' selected':''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Week #</label><input class="input" type="number" id="ee-week" min="1"></div>
+    </div>
+    <div class="form-row"><label>Time Reference</label><input class="input" id="ee-timeref"></div>
+    <div class="form-row"><label>Location</label><input class="input" id="ee-location"></div>
+    <div class="form-row"><label>Internal Attendees</label><input class="input" id="ee-int"></div>
+    <div class="form-row"><label>External Attendees</label><input class="input" id="ee-ext"></div>
+    <div class="form-row"><label>Description (markdown OK)</label><textarea class="input" id="ee-desc" style="min-height:60px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditEvent()">Save</button>
+    </div>
+  `);
+  // Set values after modal renders to avoid quote/HTML injection issues
+  setTimeout(()=>{
+    const fields={
+      'ee-title':e.title||'',
+      'ee-time':e.time||'',
+      'ee-timeref':e.timeRef||'',
+      'ee-location':e.location||'',
+      'ee-int':e.attendeesInternal||'',
+      'ee-ext':e.attendeesExternal||'',
+      'ee-desc':e.description||'',
+      'ee-week':(e.week||0)+1,
+    };
+    Object.entries(fields).forEach(([id,val])=>{
+      const el=document.getElementById(id);
+      if(el)el.value=val;
+    });
+  },50);
+}
+
+function saveEditEvent(){
+  const key=window._editingEventKey;if(!key)return;
   const updates={
     title:gv('ee-title'),time:gv('ee-time'),status:gv('ee-status'),
+    day:parseInt(gv('ee-day'))||0,
+    week:Math.max(0,(parseInt(gv('ee-week'))||1)-1),
     timeRef:gv('ee-timeref'),location:gv('ee-location'),
     attendeesInternal:gv('ee-int'),attendeesExternal:gv('ee-ext'),
     description:gv('ee-desc'),
   };
   Object.entries(updates).forEach(([k,v])=>dbSet('events/'+key+'/'+k,v));
+  window._editingEventKey=null;
   closeModal();showToast('Event updated');
 }
 
@@ -1560,9 +1647,7 @@ calendar:{icon:'🗓️',title:'Calendar',
     </div>
     <div id="cal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;">
       <div id="cal-view-content" style="flex:1;overflow:hidden;display:flex;flex-direction:column;"></div>
-      <div class="cal-detail-overlay" id="cal-detail-overlay" onclick="closeCalDetail(event)">
-        <div class="cal-detail-panel" id="cal-detail-panel"></div>
-      </div>
+      <!-- detail window launched as floating win via openCalDetail() -->
     </div>
   `,
   init(){
@@ -2416,7 +2501,7 @@ function checkPass(){
       dbGet('config',c=>{if(c&&c.name){const el=document.getElementById('cfg-name');if(el)el.value=c.name;}});
       renderSTInv();updateMenuAvg();renderSTAccountDropdown();
       initSTMonitor();renderSTBankSelect();renderSTBankView();
-      renderSTCalendar();
+      renderSTCalendar();renderSTCalView();
     } else {
       document.getElementById('st-pass-err').style.display='block';
     }
@@ -2480,7 +2565,7 @@ function startApp(){
   dbListen('global_events','events',v=>{
     _events=toArr(v);updateCalBadge();
     if(_wins['calendar'])renderCalendar();
-    if(_stUnlocked){renderSTEventList();renderSTMeetReqs();}
+    if(_stUnlocked){renderSTEventList();renderSTMeetReqs();renderSTCalView();}
   });
   dbListen('global_meetreqs','meeting_requests',v=>{
     _meetReqs=toArr(v);updateCalBadge();
@@ -2497,6 +2582,12 @@ function startApp(){
   dbListen('global_txs','transactions',v=>{
     _txs=toArrD(v);
     if(_wins['bank'])renderBank();
+  });
+  // Contacts loaded globally so ST calendar dropdown always has data
+  dbListen('global_contacts','contacts',v=>{
+    _contacts=toArr(v);
+    if(_wins['rolodex'])renderRolodex();
+    if(_stUnlocked)renderSTContactDropdownCal();
   });
 }
 function updateChatBadge(){
@@ -2710,6 +2801,8 @@ function selectDocType(el, type){
   document.getElementById('doc-type-display').textContent = type;
   const btn = document.getElementById('gen-doc-btn');
   btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+  const rawBtn = document.getElementById('send-raw-btn');
+  if(rawBtn){rawBtn.disabled=false;rawBtn.style.opacity='1';rawBtn.style.cursor='pointer';}
   // Set default tone for this doc type
   const cfg = DOC_CONFIGS[type];
   if(cfg && cfg.tone) selectTone(cfg.tone);
@@ -2881,6 +2974,49 @@ function livePreview(){
   }
 }
 
+function sendRawDocument(){
+  if(!_selectedDocType){showToast('Select a document type first');return;}
+  const cfg=DOC_CONFIGS[_selectedDocType]||{};
+
+  // Build a simple formatted document from the filled fields
+  const sender=gv('df-sender');
+  const recipient=gv('df-recipient');
+  const bizname=gv('df-bizname');
+  const dateVal=gv('df-date');
+  const address=gv('df-address');
+  const refnum=gv('df-refnum');
+  const npc=gv('df-npc');
+  const synopsis=gv('df-synopsis');
+
+  let dynDetails='';
+  if(cfg.fields){
+    cfg.fields.forEach(f=>{
+      const val=gv(f.id);
+      if(val)dynDetails+=`**${f.label}:** ${val}\n`;
+    });
+  }
+
+  // Build a simple formatted body from the fields
+  let body=``;
+  if(recipient)body+=`To: ${recipient}\n`;
+  if(sender)body+=`From: ${sender}\n`;
+  if(bizname)body+=`Re: ${bizname}\n`;
+  if(dateVal)body+=`Date: ${dateVal}\n`;
+  if(address)body+=`Address: ${address}\n`;
+  if(refnum)body+=`Reference: ${refnum}\n`;
+  if(npc)body+=`Contact: ${npc}\n`;
+  if(dynDetails)body+=`\n${dynDetails}`;
+  if(synopsis)body+=`\n${synopsis}`;
+
+  // Pre-fill the output area
+  document.getElementById('doc-output-text').value=body.trim();
+  const subject=gv('df-subject')||_selectedDocType;
+  document.getElementById('doc-output-subject').value=subject;
+  document.getElementById('doc-subject-wrap').style.display=_selectedDelivery==='email'?'':'none';
+  document.getElementById('doc-output-wrap').style.display='';
+  showToast('Pre-filled — review and send');
+}
+
 function regenerateDocument(){
   generateDocument();
 }
@@ -2911,6 +3047,16 @@ function sendGeneratedDocument(){
 // ═══════════════════════════════════════════════════
 //  CALENDAR ENGINE
 // ═══════════════════════════════════════════════════
+
+function parseTimeSort(t){
+  if(!t||t==='TBD')return 9999;
+  const m=t.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if(!m)return 9999;
+  let h=parseInt(m[1]),mn=parseInt(m[2]),ap=m[3].toUpperCase();
+  if(ap==='PM'&&h!==12)h+=12;
+  if(ap==='AM'&&h===12)h=0;
+  return h*60+mn;
+}
 
 function setCalView(v){
   _calView=v;
@@ -2963,7 +3109,10 @@ function getEventsForSlot(dayIdx,weekOffset){
   }))].filter(e=>{
     if(e.day===undefined)return false;
     return e.day===dayIdx&&(e.week||0)===weekOffset;
-  }).sort((a,b)=>(a.order||0)-(b.order||0));
+  }).sort((a,b)=>{
+    const td=parseTimeSort(a.time)-parseTimeSort(b.time);
+    return td!==0?td:(a.order||0)-(b.order||0);
+  });
 }
 
 function getEventsForMonth(monthIdx){
@@ -2971,6 +3120,26 @@ function getEventsForMonth(monthIdx){
 }
 
 // ── WEEK VIEW ──────────────────────────────────────
+function getRecurringForDay(dayIdx,weekOffset){
+  // Expand recurring events — parse pattern for day names
+  const dayNames=['sun','mon','tue','wed','thu','fri','sat'];
+  const dayFull=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const results=[];
+  _events.filter(e=>e.recurring&&e.recurringPattern).forEach(e=>{
+    const pat=(e.recurringPattern||'').toLowerCase();
+    const matchesDay=dayNames.some((d,i)=>i===dayIdx&&(pat.includes(d)||pat.includes(dayFull[i])));
+    const isDaily=pat.includes('daily')||pat.includes('every night')||pat.includes('every day');
+    const isWeekday=pat.includes('weekday')&&dayIdx>=1&&dayIdx<=5;
+    const isWeekend=pat.includes('weekend')&&(dayIdx===0||dayIdx===6);
+    if((matchesDay||isDaily||isWeekday||isWeekend)&&e.day!==dayIdx){
+      // Check end condition
+      const endOk=!e.recurringCount||weekOffset<=((e.recurringCount||99));
+      if(endOk)results.push({...e,day:dayIdx,_recurringInstance:true});
+    }
+  });
+  return results;
+}
+
 function renderWeekView(container){
   container.style.overflowY='hidden';
   container.style.display='flex';
@@ -2986,9 +3155,14 @@ function renderWeekView(container){
   container.innerHTML=html;
   DAYS.forEach((_,i)=>{
     const body=document.getElementById('cal-day-'+i);if(!body)return;
-    const evts=getEventsForSlot(i,_calOffset);
-    evts.forEach(e=>{
-      const card=makeEventCard(e,true);
+    const direct=getEventsForSlot(i,_calOffset);
+    const recurring=getRecurringForDay(i,_calOffset);
+    // Merge and deduplicate
+    const seen=new Set(direct.map(e=>e._k));
+    const all=[...direct,...recurring.filter(e=>!seen.has(e._k))];
+    all.sort((a,b)=>parseTimeSort(a.time)-parseTimeSort(b.time));
+    all.forEach(e=>{
+      const card=makeEventCard(e,!e._recurringInstance);
       body.appendChild(card);
     });
   });
@@ -3147,6 +3321,7 @@ let _dragEvt=null,_listDragKey=null;
 function calDragStart(ev,e){
   _dragEvt=e;
   ev.dataTransfer.effectAllowed='move';
+  ev.dataTransfer.setData('text/plain',e._k||'');
 }
 
 function calDragOver(ev,dayIdx){
@@ -3156,21 +3331,18 @@ function calDragOver(ev,dayIdx){
 
 function calDrop(ev,dayIdx,viewType,weekOrMonth){
   ev.preventDefault();
-  if(!_dragEvt||!_dragEvt._k)return;
-  // ST only — check if ST panel is active
-  const updates={day:dayIdx};
-  if(viewType==='week')updates.week=weekOrMonth;
-  else if(viewType==='month')updates.week=weekOrMonth;
-  Object.entries(updates).forEach(([k,v])=>dbSet('events/'+_dragEvt._k+'/'+k,v));
+  ev.stopPropagation();
+  const key=ev.dataTransfer.getData('text/plain')||(_dragEvt&&_dragEvt._k);
+  if(!key)return;
+  dbSet('events/'+key+'/day',dayIdx);
+  dbSet('events/'+key+'/week',parseInt(weekOrMonth)||0);
   _dragEvt=null;
+  showToast('Event moved to '+DAYS[dayIdx]);
 }
 
 // ── EVENT DETAIL ───────────────────────────────────
+// ── PLAYER DETAIL (read-only, zero ST controls) ───────────
 function openCalDetail(key,isReq){
-  const overlay=document.getElementById('cal-detail-overlay');
-  const panel=document.getElementById('cal-detail-panel');
-  if(!overlay||!panel)return;
-
   let e=null;
   if(isReq==='true'||isReq===true){
     e=_meetReqs.find(r=>r._k===key);
@@ -3179,46 +3351,226 @@ function openCalDetail(key,isReq){
     e=_events.find(ev=>ev._k===key);
   }
   if(!e)return;
+  _openCalDetailWindow(e,false);
+}
 
-  const color=EVT_HEX[e.type]||'#636366';
-  const isHidden=e.priority==='eyesonly'&&!e.eyesOnlyRevealed;
-  const stUnlocked=_stUnlocked;
+// ── ST DETAIL (full controls) ──────────────────────────────
+function openCalDetailST(key){
+  const e=_events.find(ev=>ev._k===key);
+  if(!e)return;
+  _openCalDetailWindow(e,true);
+}
 
-  panel.innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:12px;height:12px;border-radius:50%;background:${color}"></div>
-        <span style="font-size:15px;font-weight:600">${isHidden?'🔒 [REDACTED]':e.title||''}</span>
-      </div>
-      <button class="btn btn-sm" onclick="closeCalDetail()">✕</button>
+// ── SHARED DETAIL WINDOW BUILDER (DOM-based, no template literal tricks) ──
+function _openCalDetailWindow(e, isSTView){
+  if(_wins['cal-detail'])closeApp('cal-detail');
+
+  const color = EVT_HEX[e.type]||'#636366';
+  const key = e._k||'';
+  const isHidden = e.priority==='eyesonly' && !e.eyesOnlyRevealed && !isSTView;
+
+  // ── Build the window shell ────────────────────────────────
+  const win = document.createElement('div');
+  win.className = 'win active';
+  win.id = 'win-cal-detail';
+  win.style.cssText = 'left:200px;top:60px;width:440px;min-height:300px;max-height:580px;z-index:'+(++zTop)+';';
+
+  // Title bar
+  const tb = document.createElement('div');
+  tb.className = 'win-titlebar';
+  tb.onmousedown = ev => startDrag(ev, 'cal-detail');
+  tb.innerHTML = `
+    <div class="win-dots">
+      <div class="win-dot close" onclick="closeApp('cal-detail')"></div>
+      <div class="win-dot min"></div>
+      <div class="win-dot max" onclick="maxWin('cal-detail')"></div>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-      ${makeStatusPill(e.status)}
-      <span class="pill" style="background:rgba(${hexToRgb(color)},0.15);color:${color};font-size:10px">${e.type||''}</span>
-      ${e.recurring?'<span class="pill pill-blue" style="font-size:10px">↻ Recurring</span>':''}
-      ${e.lastMinute?'<span class="pill pill-red" style="font-size:10px">⚡ Last Minute</span>':''}
-    </div>
-    ${!isHidden?`
-    <div class="cal-detail-field"><div class="cal-detail-label">Time</div><div class="cal-detail-value">${e.time||'TBD'}</div></div>
-    <div class="cal-detail-field"><div class="cal-detail-label">Chronicle Period</div><div class="cal-detail-value">${e.day!==undefined?DAYS[e.day]+', ':''} ${e.timeRef||'—'}</div></div>
-    ${e.location?`<div class="cal-detail-field"><div class="cal-detail-label">Location</div><div class="cal-detail-value">📍 ${e.location}</div></div>`:''}
-    ${e.attendeesInternal?`<div class="cal-detail-field"><div class="cal-detail-label">Internal Attendees</div><div class="cal-detail-value">${e.attendeesInternal}</div></div>`:''}
-    ${e.attendeesExternal?`<div class="cal-detail-field"><div class="cal-detail-label">External Attendees</div><div class="cal-detail-value">${e.attendeesExternal}</div></div>`:''}
-    ${e.description?`<div class="cal-detail-field"><div class="cal-detail-label">Details</div><div class="cal-detail-value md-render">${mdRender(e.description)}</div></div>`:''}
-    ${e.stNote&&(e.stNoteRevealed||stUnlocked)?`<div class="cal-st-note"><strong>Note:</strong> ${e.stNote}</div>`:''}
-    ${e.recurring&&e.recurringPattern?`<div class="cal-detail-field"><div class="cal-detail-label">Recurrence</div><div class="cal-detail-value">↻ ${e.recurringPattern}</div></div>`:''}
-    `:'<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px 0">Details restricted — Eyes Only</div>'}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">
-      ${e.status==='pending-player'?`<button class="btn btn-primary btn-sm" onclick="playerConfirmEvent('${e._k}')">✓ Confirm</button><button class="btn btn-danger btn-sm" onclick="playerDeclineEvent('${e._k}')">✗ Decline</button>`:''}
-      ${e._isMeetReq&&e.status==='pending'?`<button class="btn btn-sm" onclick="openEditMeetReq('${e._k}')">✏️ Edit Request</button><button class="btn btn-danger btn-sm" onclick="cancelMeetReq('${e._k}')">Cancel Request</button>`:''}
-    </div>
+    <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;margin-right:4px"></div>
+    <span class="win-title" style="text-align:left">${isHidden ? '🔒 [Eyes Only]' : (e.title||'Event Detail').slice(0,40)}</span>
+    ${isSTView ? '<span style="font-size:10px;color:var(--accent);margin-left:auto;padding-right:4px">ST</span>' : ''}
   `;
-  overlay.classList.add('show');
+  win.appendChild(tb);
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'win-body';
+  body.id = 'body-cal-detail';
+  body.style.cssText = 'padding:16px;overflow-y:auto;';
+
+  // Status pills row
+  const pillRow = document.createElement('div');
+  pillRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px';
+  pillRow.innerHTML = makeStatusPill(e.status)
+    + `<span class="pill" style="background:rgba(${hexToRgb(color)},0.15);color:${color};font-size:10px">${e.type||''}</span>`
+    + (e.recurring ? '<span class="pill pill-blue" style="font-size:10px">↻ Recurring</span>' : '')
+    + (e.lastMinute ? '<span class="pill pill-red" style="font-size:10px">⚡ Last Minute</span>' : '');
+  body.appendChild(pillRow);
+
+  if(isHidden){
+    const hid = document.createElement('div');
+    hid.style.cssText = 'color:var(--text3);font-size:13px;text-align:center;padding:20px 0';
+    hid.textContent = 'Details restricted — Eyes Only';
+    body.appendChild(hid);
+  } else {
+    // Detail fields helper
+    function addField(label, value){
+      if(!value)return;
+      const f = document.createElement('div');
+      f.className = 'cal-detail-field';
+      f.innerHTML = `<div class="cal-detail-label">${label}</div><div class="cal-detail-value">${value}</div>`;
+      body.appendChild(f);
+    }
+
+    addField('Time', e.time||'TBD');
+    addField('Day / Period', (e.day!==undefined ? DAYS[e.day] : '—') + (e.timeRef ? ' · '+e.timeRef : ''));
+    if(e.location) addField('Location', '📍 '+e.location);
+    if(e.attendeesInternal) addField('Internal Attendees', e.attendeesInternal);
+    if(e.attendeesExternal) addField('External Attendees', e.attendeesExternal);
+
+    if(e.description){
+      const df = document.createElement('div');
+      df.className = 'cal-detail-field';
+      df.innerHTML = '<div class="cal-detail-label">Details</div>';
+      const dv = document.createElement('div');
+      dv.className = 'cal-detail-value md-render';
+      dv.style.cssText = 'font-size:13px;color:var(--text2);line-height:1.6';
+      dv.innerHTML = mdRender(e.description);
+      df.appendChild(dv);
+      body.appendChild(df);
+    }
+
+    if(e.recurring && e.recurringPattern)
+      addField('Recurrence', '↻ '+e.recurringPattern);
+
+    // ── NOTES ─────────────────────────────────────────────
+    // Player sees note ONLY if stNoteRevealed === true
+    if(!isSTView && e.stNote && e.stNoteRevealed){
+      const note = document.createElement('div');
+      note.className = 'cal-st-note';
+      note.innerHTML = '<strong>Note:</strong> ' + (e.stNote||'');
+      body.appendChild(note);
+    }
+
+    // ST sees note always (purple if unrevealed)
+    if(isSTView && e.stNote){
+      const note = document.createElement('div');
+      note.className = 'cal-st-note';
+      note.style.cssText = e.stNoteRevealed
+        ? ''
+        : 'border-color:rgba(159,111,255,0.5);background:rgba(159,111,255,0.06)';
+      note.innerHTML = '<span style="font-size:10px;color:var(--accent);font-weight:600">'
+        + (e.stNoteRevealed ? 'NOTE (revealed)' : 'NOTE (ST only)') + ' — </span>'
+        + (e.stNote||'');
+      body.appendChild(note);
+    }
+  }
+
+  // ── ACTION BUTTONS ─────────────────────────────────────
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;border-top:0.5px solid var(--border2);padding-top:12px';
+
+  if(!isSTView){
+    // PLAYER ACTIONS ONLY
+    if(e.status === 'pending-player'){
+      const conf = document.createElement('button');
+      conf.className = 'btn btn-primary btn-sm';
+      conf.textContent = '✓ Confirm';
+      conf.onclick = () => playerConfirmEvent(key);
+      actions.appendChild(conf);
+
+      const dec = document.createElement('button');
+      dec.className = 'btn btn-danger btn-sm';
+      dec.textContent = '✗ Decline';
+      dec.onclick = () => playerDeclineEvent(key);
+      actions.appendChild(dec);
+    }
+    if(e._isMeetReq && e.status === 'pending'){
+      const edit = document.createElement('button');
+      edit.className = 'btn btn-sm';
+      edit.textContent = '✏️ Edit Request';
+      edit.onclick = () => openEditMeetReq(key);
+      actions.appendChild(edit);
+
+      const cancel = document.createElement('button');
+      cancel.className = 'btn btn-danger btn-sm';
+      cancel.textContent = 'Cancel Request';
+      cancel.onclick = () => cancelMeetReq(key);
+      actions.appendChild(cancel);
+    }
+  } else {
+    // ST ACTIONS ONLY — never shown in player view
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-sm';
+    editBtn.textContent = '✏️ Edit';
+    editBtn.onclick = () => { closeApp('cal-detail'); stEditEventModal(key); };
+    actions.appendChild(editBtn);
+
+    if(e.status !== 'completed'){
+      const comp = document.createElement('button');
+      comp.className = 'btn btn-sm';
+      comp.textContent = '✓ Complete';
+      comp.onclick = () => { dbSet('events/'+key+'/status','completed'); closeApp('cal-detail'); showToast('Marked complete'); };
+      actions.appendChild(comp);
+    }
+
+    if(e.status !== 'cancelled' && e.status !== 'completed'){
+      const canc = document.createElement('button');
+      canc.className = 'btn btn-sm';
+      canc.textContent = '✕ Cancel';
+      canc.onclick = () => { dbSet('events/'+key+'/status','cancelled'); closeApp('cal-detail'); showToast('Cancelled'); };
+      actions.appendChild(canc);
+    }
+
+    if(e.priority === 'eyesonly' && !e.eyesOnlyRevealed){
+      const rev = document.createElement('button');
+      rev.className = 'btn btn-sm';
+      rev.style.color = 'var(--accent)';
+      rev.textContent = '👁 Reveal';
+      rev.onclick = () => { closeApp('cal-detail'); stRevealEvent(key); };
+      actions.appendChild(rev);
+    }
+
+    const noteBtn = document.createElement('button');
+    noteBtn.className = 'btn btn-sm';
+    noteBtn.textContent = '📝 Note';
+    noteBtn.onclick = () => { closeApp('cal-detail'); stAddNoteModal(key); };
+    actions.appendChild(noteBtn);
+
+    const sendEmail = document.createElement('button');
+    sendEmail.className = 'btn btn-sm';
+    sendEmail.textContent = '📧 Meeting Email';
+    sendEmail.onclick = () => { closeApp('cal-detail'); stSendMeetingRequestEmail(key); };
+    actions.appendChild(sendEmail);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = '🗑 Delete';
+    delBtn.onclick = () => {
+      if(confirm('Delete this event permanently?')){
+        dbDel('events/'+key);
+        closeApp('cal-detail');
+        showToast('Event deleted');
+      }
+    };
+    actions.appendChild(delBtn);
+  }
+
+  body.appendChild(actions);
+  win.appendChild(body);
+
+  // Resize handle
+  const resz = document.createElement('div');
+  resz.className = 'win-resize';
+  resz.onmousedown = ev => startResize(ev, 'cal-detail');
+  win.appendChild(resz);
+
+  document.getElementById('desktop').appendChild(win);
+  _wins['cal-detail'] = win;
+  bringFront(win);
 }
 
 function closeCalDetail(ev){
-  if(ev&&ev.target!==document.getElementById('cal-detail-overlay'))return;
-  document.getElementById('cal-detail-overlay')?.classList.remove('show');
+  closeApp('cal-detail');
 }
 
 function hexToRgb(hex){
@@ -3304,6 +3656,110 @@ function updateCalBadge(){
   const n=_events.filter(e=>['upcoming','confirmed','pending-player'].includes(e.status)).length+_meetReqs.filter(r=>r.status==='pending').length;
   const b=document.getElementById('cal-badge');
   if(b){b.textContent=n||'';b.style.display=n?'flex':'none';}
+}
+
+// ── ST CALENDAR VIEW ─────────────────────────────────────────
+let _stCalView='week',_stCalOffset=0;
+
+function setSTCalView(v){
+  _stCalView=v;
+  ['week','month','list'].forEach(k=>{
+    const el=document.getElementById('st-cv-'+k);
+    if(el)el.classList.toggle('active',k===v);
+  });
+  renderSTCalView();
+}
+
+function stCalNav(dir){
+  _stCalOffset+=dir;
+  renderSTCalView();
+}
+
+function renderSTCalView(){
+  const el=document.getElementById('st-cal-view');if(!el)return;
+  const lbl=document.getElementById('st-cal-period');
+  if(lbl)lbl.textContent=_stCalView==='week'?'Week '+(_stCalOffset+1):_stCalView==='month'?MONTHS[((_stCalOffset%12)+12)%12]:'All Events';
+
+  if(_stCalView==='week'){
+    let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);height:100%;min-height:260px">';
+    DAYS.forEach((day,i)=>{
+      const evts=getEventsForSlot(i,_stCalOffset);
+      const rec=getRecurringForDay(i,_stCalOffset);
+      const seen=new Set(evts.map(e=>e._k));
+      const all=[...evts,...rec.filter(e=>!seen.has(e._k))].sort((a,b)=>parseTimeSort(a.time)-parseTimeSort(b.time));
+      const pills=all.map(e=>{
+        const color=EVT_HEX[e.type]||'#636366';
+        return `<div style="font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:rgba(${hexToRgb(color)},0.18);color:${color};cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid ${color}" onclick="stEditEventModal('${e._k||''}')">
+          ${e.time&&e.time!=='TBD'?'<span style=\'opacity:.7;font-size:9px\'>'+e.time+'</span><br>':''}${e.title||''}
+        </div>`;
+      }).join('');
+      html+=`<div style="border-right:0.5px solid var(--border2);padding:4px;display:flex;flex-direction:column;" ondragover="calDragOver(event,${i})" ondrop="calDropST(event,${i},${_stCalOffset})">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:4px;text-align:center">${day}</div>
+        ${pills||'<div style="flex:1"></div>'}
+      </div>`;
+    });
+    html+='</div>';
+    el.innerHTML=html;
+  } else if(_stCalView==='month'){
+    const monthIdx=((_stCalOffset%12)+12)%12;
+    let html='<div style="display:grid;grid-template-columns:repeat(7,1fr)">';
+    DAYS.forEach(d=>html+=`<div style="font-size:9px;font-weight:600;color:var(--text3);padding:4px;text-align:center;border-bottom:0.5px solid var(--border2)">${d}</div>`);
+    for(let w=0;w<4;w++){
+      for(let d=0;d<7;d++){
+        const wk=monthIdx*4+w;
+        const evts=getEventsForSlot(d,wk);
+        const rec=getRecurringForDay(d,wk);
+        const seen=new Set(evts.map(e=>e._k));
+        const all=[...evts,...rec.filter(e=>!seen.has(e._k))];
+        const pills=all.slice(0,2).map(e=>{
+          const color=EVT_HEX[e.type]||'#636366';
+          return `<div style="font-size:9px;padding:1px 3px;border-radius:2px;margin-bottom:1px;background:rgba(${hexToRgb(color)},0.18);color:${color};cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="openCalDetailST('${e._k||''}')" title="${e.title||''}">${e.title||''}</div>`;
+        }).join('');
+        const more=all.length>2?`<div style="font-size:8px;color:var(--text3)">+${all.length-2}</div>`:'';
+        html+=`<div style="min-height:60px;border-right:0.5px solid var(--border2);border-bottom:0.5px solid var(--border2);padding:3px" ondragover="calDragOver(event,${d})" ondrop="calDropST(event,${d},${wk})">
+          <div style="font-size:8px;color:var(--text3);margin-bottom:2px">W${w+1}</div>${pills}${more}
+        </div>`;
+      }
+    }
+    html+='</div>';
+    el.innerHTML=html;
+  } else {
+    // List view
+    const evts=[..._events].sort((a,b)=>{
+      const wd=(a.week||0)-(b.week||0);
+      if(wd!==0)return wd;
+      const dd=(a.day||0)-(b.day||0);
+      if(dd!==0)return dd;
+      return parseTimeSort(a.time)-parseTimeSort(b.time);
+    });
+    el.innerHTML=evts.length?'':'<div style="padding:16px;color:var(--text3);font-size:12px">No events</div>';
+    evts.forEach(e=>{
+      const color=EVT_HEX[e.type]||'#636366';
+      const d=document.createElement('div');
+      d.style.cssText=`display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:0.5px solid var(--border2);cursor:pointer;${['completed','cancelled'].includes(e.status)?'opacity:.4;text-decoration:line-through':''}`;
+      d.innerHTML=`
+        <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500">${e.title||''}</div>
+          <div style="font-size:10px;color:var(--text3)">${e.day!==undefined?DAYS[e.day]:''} ${e.time||''} ${e.timeRef?'· '+e.timeRef:''}</div>
+        </div>
+        <button class="btn btn-sm" style="font-size:10px" onclick="event.stopPropagation();stEditEventModal('${e._k||''}')">✏️</button>
+      `;
+      d.onclick=()=>openCalDetailST(e._k);
+      el.appendChild(d);
+    });
+  }
+}
+
+function calDropST(ev,dayIdx,weekOffset){
+  ev.preventDefault();
+  ev.stopPropagation();
+  const key=ev.dataTransfer.getData('text/plain')||(_dragEvt&&_dragEvt._k);
+  if(!key)return;
+  dbSet('events/'+key+'/day',dayIdx);
+  dbSet('events/'+key+'/week',parseInt(weekOffset)||0);
+  _dragEvt=null;
+  showToast('Event moved to '+DAYS[dayIdx]);
 }
 
 // ═══════════════════════════════════════════════════
