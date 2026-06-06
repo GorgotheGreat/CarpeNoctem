@@ -107,7 +107,7 @@ select.input option{background:#1c1c1e;}
 .tab-content.active{display:block;}
 
 /* ── MODAL ── */
-#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);z-index:2000;align-items:center;justify-content:center;}
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);z-index:4000;align-items:center;justify-content:center;}
 #modal-overlay.show{display:flex;}
 .modal{background:#1c1c1e;border:0.5px solid var(--border);border-radius:var(--radius);box-shadow:0 30px 80px rgba(0,0,0,0.85);padding:22px;width:440px;max-width:95vw;max-height:85vh;overflow-y:auto;}
 .modal h2{font-size:16px;font-weight:600;margin-bottom:14px;}
@@ -276,6 +276,32 @@ select.input option{background:#1c1c1e;}
 .cal-detail-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
 .cal-detail-value{font-size:13px;color:var(--text2);}
 .cal-st-note{background:rgba(255,214,10,0.06);border-left:3px solid var(--amber);border-radius:0 var(--radius-xs) var(--radius-xs) 0;padding:8px 12px;margin-top:10px;font-size:12px;color:var(--text2);line-height:1.6;}
+
+
+/* Pending-player event indicators */
+.cal-event-card.needs-action{
+  border-color:var(--amber)!important;
+  box-shadow:0 0 0 1px rgba(255,214,10,0.3);
+  animation:pendingPulse 2s ease-in-out infinite;
+}
+@keyframes pendingPulse{
+  0%,100%{box-shadow:0 0 0 1px rgba(255,214,10,0.3);}
+  50%{box-shadow:0 0 0 3px rgba(255,214,10,0.5),0 0 8px rgba(255,214,10,0.2);}
+}
+.pending-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--amber);flex-shrink:0;
+  animation:pendingPulse 1.2s ease-in-out infinite;
+}
+.cal-needs-action-banner{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px;
+  background:rgba(255,214,10,0.08);
+  border-bottom:0.5px solid rgba(255,214,10,0.25);
+  font-size:12px;color:var(--amber);
+  cursor:pointer;
+}
+.cal-needs-action-banner:hover{background:rgba(255,214,10,0.13);}
 
 /* Pending request card style */
 .cal-event-card.pending{border-style:dashed;opacity:.8;}
@@ -602,6 +628,7 @@ select.input option{background:#1c1c1e;}
           <button class="btn btn-primary" onclick="stSaveCfg()">Save Config</button>
           <button class="btn btn-danger" onclick="confirmClear()">⚠ Reset All Data</button>
           <button class="btn btn-sm" style="font-size:10px" onclick="purgeBadEvents()">🧹 Purge ghost events</button>
+          <button class="btn btn-sm" style="font-size:10px" onclick="deleteByTitle()">🔍 Delete by title</button>
         </div>
         <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm)">
           <div style="font-size:11px;color:var(--text3)">Menu Avg Spend Analysis</div>
@@ -1271,7 +1298,8 @@ function sendMeetingEmailDirect(){
   const subj=gv('mre-subj').trim()||'Meeting Request';
   const body=gv('mre-body').trim();
   const pri=gv('mre-pri')||'normal';
-  dbPush('emails',{from,subject:subj,body,priority:pri,time:new Date().toLocaleString(),read:false,_ts:Date.now()});
+  // Store eventKey in email so player can confirm directly from inbox
+  dbPush('emails',{from,subject:subj,body,priority:pri,time:new Date().toLocaleString(),read:false,eventKey:key,emailType:'meeting_request',_ts:Date.now()});
   dbSet('events/'+key+'/status','pending-player');
   dbSet('events/'+key+'/meetingRequestSent',true);
   window._meetEmailEventKey=null;
@@ -1486,6 +1514,7 @@ mail:{icon:'✉️',title:'Inbox',
         <div id="mv-subj" style="font-size:15px;font-weight:600"></div>
         <div id="mv-time" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
       </div>
+      <div id="mv-action-bar"></div>
       <div id="mv-body" style="padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.7;flex:1;overflow-y:auto;white-space:pre-wrap"></div>
       <div style="padding:9px 14px;border-top:0.5px solid var(--border2);display:flex;gap:8px">
         <textarea class="input" id="mail-reply" placeholder="Reply… (Shift+Enter for new line)" style="font-size:12px;padding:5px 9px;min-height:38px;max-height:120px;resize:none;overflow-y:auto" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply()}" rows="1" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
@@ -1646,6 +1675,7 @@ calendar:{icon:'🗓️',title:'Calendar',
       </div>
     </div>
     <div id="cal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;">
+      <div id="cal-action-banner" style="display:none"></div>
       <div id="cal-view-content" style="flex:1;overflow:hidden;display:flex;flex-direction:column;"></div>
       <!-- detail window launched as floating win via openCalDetail() -->
     </div>
@@ -1707,7 +1737,53 @@ function openEmail(idx,key){
   if(m.replies){const ra=Array.isArray(m.replies)?m.replies:Object.values(m.replies);ra.forEach(r=>{body+='\n\n── Your Reply ──\n'+r;});}
   const mvBody=document.getElementById('mv-body');
   mvBody.innerHTML='<div class="md-render">'+mdRender(body)+'</div>';
+  // Show confirm/decline bar if this is a meeting request email
+  const actBar=document.getElementById('mv-action-bar');
+  if(actBar){
+    actBar.innerHTML='';
+    if(m.emailType==='meeting_request'&&m.eventKey){
+      const evt=_events.find(e=>e._k===m.eventKey);
+      const eKey=m.eventKey;
+      const mailKey=key||m._k;
+      if(evt&&evt.status==='pending-player'){
+        const bar=document.createElement('div');
+        bar.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(10,132,255,0.06);border-bottom:0.5px solid var(--border2)';
+        bar.innerHTML='<span style="font-size:12px;color:var(--text2);flex:1">Respond to this meeting request:</span>';
+        const conf=document.createElement('button');
+        conf.className='btn btn-primary btn-sm';
+        conf.textContent='✓ Confirm Meeting';
+        conf.onclick=()=>confirmMeetingFromEmail(eKey,mailKey);
+        const dec=document.createElement('button');
+        dec.className='btn btn-danger btn-sm';
+        dec.textContent='✗ Decline';
+        dec.onclick=()=>declineMeetingFromEmail(eKey,mailKey);
+        bar.appendChild(conf);bar.appendChild(dec);
+        actBar.appendChild(bar);
+      } else if(evt&&evt.status==='confirmed'){
+        actBar.innerHTML='<div style="padding:8px 16px;background:rgba(52,199,89,0.06);border-bottom:0.5px solid var(--border2);font-size:12px;color:var(--green)">✓ You confirmed this meeting</div>';
+      } else if(evt&&(evt.status==='cancelled'||evt.status==='completed')){
+        actBar.innerHTML='<div style="padding:8px 16px;background:rgba(255,69,58,0.06);border-bottom:0.5px solid var(--border2);font-size:12px;color:var(--red)">✕ This meeting was declined or cancelled</div>';
+      }
+    }
+  }
 }
+
+function confirmMeetingFromEmail(eventKey,emailKey){
+  dbSet('events/'+eventKey+'/status','confirmed');
+  dbPush('st_alerts',{type:'evt_confirm',text:'Player confirmed meeting from email',time:nowTime(),read:false,_ts:Date.now()});
+  const actBar=document.getElementById('mv-action-bar');
+  if(actBar)actBar.innerHTML='<div style="padding:8px 16px;background:rgba(52,199,89,0.06);border-bottom:0.5px solid var(--border2);font-size:12px;color:var(--green)">✓ Meeting confirmed — added to your calendar.</div>';
+  showToast('Meeting confirmed');
+}
+
+function declineMeetingFromEmail(eventKey,emailKey){
+  dbSet('events/'+eventKey+'/status','cancelled');
+  dbPush('st_alerts',{type:'evt_decline',text:'Player declined meeting from email',time:nowTime(),read:false,_ts:Date.now()});
+  const actBar=document.getElementById('mv-action-bar');
+  if(actBar)actBar.innerHTML='<div style="padding:8px 16px;background:rgba(255,69,58,0.06);border-bottom:0.5px solid var(--border2);font-size:12px;color:var(--red)">✕ Meeting declined.</div>';
+  showToast('Meeting declined');
+}
+
 function backMail(){
   document.getElementById('mail-list-wrap').style.display='';
   document.getElementById('mail-view').classList.remove('show');
@@ -2488,6 +2564,10 @@ function toggleSTView(){
     document.getElementById('st-lock').style.display='';
     document.getElementById('st-body').style.display='none';
   }
+  // Close any open detail/modal windows when switching views
+  // so ST windows don't appear on player desktop
+  closeModal();
+  if(_wins['cal-detail'])closeApp('cal-detail');
 }
 function checkPass(){
   const inp=gv('st-pass');
@@ -3029,7 +3109,11 @@ function sendGeneratedDocument(){
     const from = gv('df-sender') || 'Unknown Sender';
     const subject = document.getElementById('doc-output-subject').value.trim() || _selectedDocType;
     const priority = gv('df-priority') || 'normal';
-    dbPush('emails',{from, subject, body, priority, time:new Date().toLocaleString(), read:false, _ts:Date.now()});
+    // Check if this was triggered from a meeting event
+    const evKey=window._meetEmailEventKey||'';
+    const emailObj={from,subject,body,priority,time:new Date().toLocaleString(),read:false,_ts:Date.now()};
+    if(evKey){emailObj.eventKey=evKey;emailObj.emailType='meeting_request';}
+    dbPush('emails',emailObj);
     showToast('Email sent to player inbox');
   } else {
     const contact = gv('df-chatfrom') || gv('df-sender') || 'Notification';
@@ -3082,6 +3166,27 @@ function renderCalendar(){
   else if(_calView==='year')renderYearView(content);
   else renderListView(content);
   checkPendingConfirmations();
+  updateCalActionBanner();
+}
+
+function updateCalActionBanner(){
+  const banner=document.getElementById('cal-action-banner');
+  if(!banner)return;
+  const pendingEvts=_events.filter(e=>e.status==='pending-player');
+  const pendingReqs=_meetReqs.filter(r=>r.status==='pending');
+  const total=pendingEvts.length+pendingReqs.length;
+  if(!total){banner.style.display='none';return;}
+  banner.style.display='';
+  const items=[];
+  if(pendingEvts.length)items.push(pendingEvts.length+' meeting request'+(pendingEvts.length>1?'s':'')+' awaiting your response');
+  if(pendingReqs.length)items.push(pendingReqs.length+' meeting request'+(pendingReqs.length>1?'s':'')+' pending approval');
+  banner.className='cal-needs-action-banner';
+  banner.innerHTML=`
+    <span class="pending-dot"></span>
+    <span style="flex:1"><strong>${total} item${total>1?'s':''} need your attention</strong> — ${items.join(' · ')}</span>
+    <span style="font-size:11px;opacity:.7">Click to view ▾</span>
+  `;
+  banner.onclick=()=>setCalView('list');
 }
 
 function updateCalPeriodLabel(){
@@ -3146,7 +3251,7 @@ function renderWeekView(container){
   container.style.flexDirection='column';
   let html='<div class="cal-week" style="flex:1;overflow:hidden">';
   DAYS.forEach((day,i)=>{
-    html+=`<div class="cal-day-col" id="cal-col-${i}" ondragover="calDragOver(event,${i})" ondrop="calDrop(event,${i},'week',${_calOffset})">
+    html+=`<div class="cal-day-col" id="cal-col-${i}" ondragover="calDragOver(event,${i})" ondragleave="calDragLeave(event)" ondrop="calDrop(event,${i},'week',${_calOffset})">
       <div class="cal-day-header">${day}</div>
       <div class="cal-day-body" id="cal-day-${i}"></div>
     </div>`;
@@ -3292,14 +3397,22 @@ function makeStatusPill(status){
 function makeEventCard(e,draggable){
   const div=document.createElement('div');
   const cls=EVT_COLORS[e.status==='pending'?'pending':e.type]||'evt-other';
+  const needsAction=e.status==='pending-player'||e.status==='pending';
   const extra=(e.status==='completed'?'completed ':(e.status==='cancelled'?'cancelled ':'')+
-    (e.lastMinute?'lastminute ':'')+(e.recurring?'recurring ':'')+(e.priority==='eyesonly'&&!e.eyesOnlyRevealed?'eyesonly ':''));
+    (e.lastMinute?'lastminute ':'')+(e.recurring?'recurring ':'')+(e.priority==='eyesonly'&&!e.eyesOnlyRevealed?'eyesonly ':'')+(needsAction?'needs-action ':''));
   div.className=`cal-event-card ${cls} ${extra}`;
-  if(draggable){div.draggable=true;div.addEventListener('dragstart',ev=>calDragStart(ev,e));}
+  if(draggable){
+    div.draggable=true;
+    div.addEventListener('dragstart',ev=>calDragStart(ev,e));
+    div.ondragstart=ev=>{ev.dataTransfer.setData('text/plain',e._k||'');_dragEvt=e;ev.dataTransfer.effectAllowed='move';};
+  }
   const title=e.priority==='eyesonly'&&!e.eyesOnlyRevealed?'🔒 [REDACTED]':e.title||'';
   div.innerHTML=`
     ${e.time?`<div class="cal-event-time">${e.time}</div>`:''}
-    <div class="cal-event-title">${title}</div>
+    <div class="cal-event-title" style="display:flex;align-items:center;gap:4px">
+      ${needsAction?'<span class="pending-dot"></span>':''}
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis">${title}</span>
+    </div>
     ${(e.attendeesInternal||e.attendeesExternal)?`<div class="cal-event-attendees">${countAttendees(e)}</div>`:''}
   `;
   div.onclick=()=>openCalDetail(e._k||(e._isMeetReq?'req_'+e._k:''));
@@ -3326,18 +3439,27 @@ function calDragStart(ev,e){
 
 function calDragOver(ev,dayIdx){
   ev.preventDefault();
+  ev.stopPropagation();
   ev.dataTransfer.dropEffect='move';
+  ev.currentTarget.style.background='rgba(159,111,255,0.1)';
+  ev.currentTarget.setAttribute('data-dragover','1');
+}
+
+function calDragLeave(ev){
+  ev.currentTarget.style.background='';
+  ev.currentTarget.removeAttribute('data-dragover');
 }
 
 function calDrop(ev,dayIdx,viewType,weekOrMonth){
   ev.preventDefault();
   ev.stopPropagation();
-  const key=ev.dataTransfer.getData('text/plain')||(_dragEvt&&_dragEvt._k);
-  if(!key)return;
+  ev.currentTarget.style.background='';
+  const key=ev.dataTransfer.getData('text/plain')||(_dragEvt&&_dragEvt._k)||'';
+  if(!key){showToast('Drag failed — try again');return;}
   dbSet('events/'+key+'/day',dayIdx);
   dbSet('events/'+key+'/week',parseInt(weekOrMonth)||0);
   _dragEvt=null;
-  showToast('Event moved to '+DAYS[dayIdx]);
+  showToast('Moved to '+DAYS[dayIdx]);
 }
 
 // ── EVENT DETAIL ───────────────────────────────────
@@ -3354,11 +3476,111 @@ function openCalDetail(key,isReq){
   _openCalDetailWindow(e,false);
 }
 
-// ── ST DETAIL (full controls) ──────────────────────────────
+// ── ST DETAIL — uses modal inside ST panel, never touches desktop ──
 function openCalDetailST(key){
-  const e=_events.find(ev=>ev._k===key);
+  let e=_events.find(ev=>ev._k===key);
+  if(!e){
+    // Also check meeting requests — they appear on the calendar too
+    const req=_meetReqs.find(r=>r._k===key);
+    if(req)e={...req,_isMeetReq:true,type:'Meeting'};
+  }
   if(!e)return;
-  _openCalDetailWindow(e,true);
+  const color=EVT_HEX[e.type]||'#636366';
+  const isHidden=e.priority==='eyesonly'&&!e.eyesOnlyRevealed;
+
+  const content=document.createElement('div');
+
+  // Pills
+  const pillRow=document.createElement('div');
+  pillRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px';
+  pillRow.innerHTML=makeStatusPill(e.status)
+    +`<span class="pill" style="background:rgba(${hexToRgb(color)},0.15);color:${color};font-size:10px">${e.type||''}</span>`
+    +(e.recurring?'<span class="pill pill-blue" style="font-size:10px">↻ Recurring</span>':''  )
+    +(e.lastMinute?'<span class="pill pill-red" style="font-size:10px">⚡ Last Minute</span>':''  );
+  content.appendChild(pillRow);
+
+  function addField(label,value){
+    if(!value)return;
+    const f=document.createElement('div');
+    f.className='cal-detail-field';
+    f.innerHTML=`<div class="cal-detail-label">${label}</div><div class="cal-detail-value">${value}</div>`;
+    content.appendChild(f);
+  }
+
+  if(isHidden){
+    const h=document.createElement('div');
+    h.style.cssText='color:var(--text3);font-size:13px;padding:12px 0';
+    h.textContent='Eyes Only — details hidden from player';
+    content.appendChild(h);
+  } else {
+    addField('Time',e.time||'TBD');
+    addField('Day / Period',(e.day!==undefined?DAYS[e.day]:'—')+(e.timeRef?' · '+e.timeRef:''));
+    if(e.location)addField('Location','📍 '+e.location);
+    if(e.attendeesInternal)addField('Internal Attendees',e.attendeesInternal);
+    if(e.attendeesExternal)addField('External Attendees',e.attendeesExternal);
+    if(e.description){
+      const df=document.createElement('div');
+      df.className='cal-detail-field';
+      const dv=document.createElement('div');
+      dv.className='cal-detail-value md-render';
+      dv.style.cssText='font-size:13px;color:var(--text2);line-height:1.6';
+      dv.innerHTML=mdRender(e.description);
+      df.innerHTML='<div class="cal-detail-label">Details</div>';
+      df.appendChild(dv);
+      content.appendChild(df);
+    }
+    if(e.recurring&&e.recurringPattern)addField('Recurrence','↻ '+e.recurringPattern);
+    if(e.stNote){
+      const note=document.createElement('div');
+      note.className='cal-st-note';
+      note.style.cssText=e.stNoteRevealed?''
+        :'border-color:rgba(159,111,255,0.5);background:rgba(159,111,255,0.06)';
+      note.innerHTML=`<span style="font-size:10px;color:var(--accent);font-weight:600">${e.stNoteRevealed?'NOTE (revealed)':'NOTE (ST only)'} — </span>${e.stNote}`;
+      content.appendChild(note);
+    }
+  }
+
+  // ST action buttons
+  const actions=document.createElement('div');
+  actions.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-top:14px;border-top:0.5px solid var(--border2);padding-top:12px';
+
+  function stBtn(label,cls,fn){
+    const b=document.createElement('button');
+    b.className='btn btn-sm '+cls;b.textContent=label;
+    b.onclick=()=>{closeModal();fn();};
+    actions.appendChild(b);
+  }
+
+  stBtn('✏️ Edit','',()=>stEditEventModal(key));
+  if(e.status!=='completed')stBtn('✓ Complete','',()=>{dbSet('events/'+key+'/status','completed');showToast('Marked complete');});
+  if(e.status!=='cancelled'&&e.status!=='completed')stBtn('✕ Cancel','',()=>{dbSet('events/'+key+'/status','cancelled');showToast('Cancelled');});
+  if(e.priority==='eyesonly'&&!e.eyesOnlyRevealed)stBtn('👁 Reveal','',()=>stRevealEvent(key));
+  stBtn('📝 Note','',()=>stAddNoteModal(key));
+  stBtn('📧 Email','',()=>stSendMeetingRequestEmail(key));
+  stBtn('🗑 Delete','btn-danger',()=>{if(confirm('Delete?'))dbDel('events/'+key);});
+
+  content.appendChild(actions);
+
+  // Close button
+  const closeRow=document.createElement('div');
+  closeRow.style.cssText='margin-top:10px;text-align:right';
+  const closeB=document.createElement('button');
+  closeB.className='btn btn-sm';closeB.textContent='Close';
+  closeB.onclick=closeModal;
+  closeRow.appendChild(closeB);
+  content.appendChild(closeRow);
+
+  // Show as modal — stays within ST panel context, never on player desktop
+  const box=document.getElementById('modal-box');
+  if(box){
+    const title=document.createElement('h2');
+    title.style.cssText='font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px';
+    title.innerHTML=`<span style="width:10px;height:10px;border-radius:50%;background:${color};display:inline-block"></span>${isHidden?'🔒 [Eyes Only]':(e.title||'').slice(0,50)}`;
+    box.innerHTML='';
+    box.appendChild(title);
+    box.appendChild(content);
+    document.getElementById('modal-overlay').classList.add('show');
+  }
 }
 
 // ── SHARED DETAIL WINDOW BUILDER (DOM-based, no template literal tricks) ──
@@ -3373,7 +3595,7 @@ function _openCalDetailWindow(e, isSTView){
   const win = document.createElement('div');
   win.className = 'win active';
   win.id = 'win-cal-detail';
-  win.style.cssText = 'left:200px;top:60px;width:440px;min-height:300px;max-height:580px;z-index:'+(++zTop)+';';
+  win.style.cssText = 'left:calc(50vw - 220px);top:80px;width:440px;min-height:300px;max-height:580px;z-index:'+(++zTop)+';';
 
   // Title bar
   const tb = document.createElement('div');
@@ -3654,8 +3876,17 @@ function checkPendingConfirmations(){
 
 function updateCalBadge(){
   const n=_events.filter(e=>['upcoming','confirmed','pending-player'].includes(e.status)).length+_meetReqs.filter(r=>r.status==='pending').length;
+  const needsAction=_events.filter(e=>e.status==='pending-player').length+_meetReqs.filter(r=>r.status==='pending').length;
   const b=document.getElementById('cal-badge');
-  if(b){b.textContent=n||'';b.style.display=n?'flex':'none';}
+  if(b){
+    b.textContent=n||'';
+    b.style.display=n?'flex':'none';
+    // Flash amber if items need player action
+    b.style.background=needsAction?'var(--amber)':'var(--red)';
+    b.style.color=needsAction?'#000':'#fff';
+    b.style.animation=needsAction?'pulse 1s infinite':'none';
+  }
+  updateCalActionBanner();
 }
 
 // ── ST CALENDAR VIEW ─────────────────────────────────────────
@@ -3689,8 +3920,9 @@ function renderSTCalView(){
       const all=[...evts,...rec.filter(e=>!seen.has(e._k))].sort((a,b)=>parseTimeSort(a.time)-parseTimeSort(b.time));
       const pills=all.map(e=>{
         const color=EVT_HEX[e.type]||'#636366';
-        return `<div style="font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:rgba(${hexToRgb(color)},0.18);color:${color};cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid ${color}" onclick="stEditEventModal('${e._k||''}')">
-          ${e.time&&e.time!=='TBD'?'<span style=\'opacity:.7;font-size:9px\'>'+e.time+'</span><br>':''}${e.title||''}
+        return `<div draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${e._k||''}');_dragEvt=_events.find(x=>x._k==='${e._k||''}');" style="font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:rgba(${hexToRgb(color)},0.18);color:${color};cursor:grab;overflow:hidden;border-left:2px solid ${color};display:flex;align-items:center;gap:3px" onclick="openCalDetailST('${e._k||''}')">
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.time&&e.time!=='TBD'?'<span style=\'opacity:.7;font-size:9px\'>'+e.time+' </span>':''}${e.title||''}</span>
+          <span onclick="event.stopPropagation();deleteCalItem('${e._k||''}',${e._isMeetReq?true:false})" style="opacity:0.6;cursor:pointer;font-size:10px;flex-shrink:0;padding:0 2px" title="Delete">✕</span>
         </div>`;
       }).join('');
       html+=`<div style="border-right:0.5px solid var(--border2);padding:4px;display:flex;flex-direction:column;" ondragover="calDragOver(event,${i})" ondrop="calDropST(event,${i},${_stCalOffset})">
@@ -3713,10 +3945,13 @@ function renderSTCalView(){
         const all=[...evts,...rec.filter(e=>!seen.has(e._k))];
         const pills=all.slice(0,2).map(e=>{
           const color=EVT_HEX[e.type]||'#636366';
-          return `<div style="font-size:9px;padding:1px 3px;border-radius:2px;margin-bottom:1px;background:rgba(${hexToRgb(color)},0.18);color:${color};cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="openCalDetailST('${e._k||''}')" title="${e.title||''}">${e.title||''}</div>`;
+          return `<div draggable="true" ondragstart="event.dataTransfer.setData('text/plain','${e._k||''}');_dragEvt=_events.find(x=>x._k==='${e._k||''}');" style="font-size:9px;padding:1px 3px;border-radius:2px;margin-bottom:1px;background:rgba(${hexToRgb(color)},0.18);color:${color};cursor:grab;overflow:hidden;display:flex;align-items:center;gap:2px" onclick="openCalDetailST('${e._k||''}')" title="${e.title||''}">
+  <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||''}</span>
+  <span onclick="event.stopPropagation();deleteCalItem('${e._k||''}',${e._isMeetReq?true:false})" style="opacity:0.6;cursor:pointer;flex-shrink:0" title="Delete">✕</span>
+</div>`;
         }).join('');
         const more=all.length>2?`<div style="font-size:8px;color:var(--text3)">+${all.length-2}</div>`:'';
-        html+=`<div style="min-height:60px;border-right:0.5px solid var(--border2);border-bottom:0.5px solid var(--border2);padding:3px" ondragover="calDragOver(event,${d})" ondrop="calDropST(event,${d},${wk})">
+        html+=`<div style="min-height:60px;border-right:0.5px solid var(--border2);border-bottom:0.5px solid var(--border2);padding:3px" ondragover="calDragOver(event,${d})" ondragleave="calDragLeave(event)" ondrop="calDropST(event,${d},${wk})">
           <div style="font-size:8px;color:var(--text3);margin-bottom:2px">W${w+1}</div>${pills}${more}
         </div>`;
       }
@@ -3754,12 +3989,13 @@ function renderSTCalView(){
 function calDropST(ev,dayIdx,weekOffset){
   ev.preventDefault();
   ev.stopPropagation();
-  const key=ev.dataTransfer.getData('text/plain')||(_dragEvt&&_dragEvt._k);
-  if(!key)return;
+  ev.currentTarget.style.background='';
+  const key=ev.dataTransfer.getData('text/plain')||(_dragEvt&&_dragEvt._k)||'';
+  if(!key){showToast('Drag failed — try again');return;}
   dbSet('events/'+key+'/day',dayIdx);
   dbSet('events/'+key+'/week',parseInt(weekOffset)||0);
   _dragEvt=null;
-  showToast('Event moved to '+DAYS[dayIdx]);
+  showToast('Moved to '+DAYS[dayIdx]);
 }
 
 // ═══════════════════════════════════════════════════
@@ -4047,6 +4283,45 @@ function selectShipDir(dir){
 const _origSelectDocType=selectDocType;
 // Patch selectDocType to also handle shipping direction visibility
 const _origSelectDocTypeFn=window.selectDocType;
+
+function deleteByTitle(){
+  const title=prompt('Enter the event or meeting title to delete:');
+  if(!title)return;
+  let found=0;
+  _events.filter(e=>(e.title||'').toLowerCase()===title.toLowerCase()).forEach(e=>{
+    dbDel('events/'+e._k);found++;
+  });
+  _meetReqs.filter(r=>(r.title||'').toLowerCase()===title.toLowerCase()).forEach(r=>{
+    dbDel('meeting_requests/'+r._k);found++;
+  });
+  showToast(found?'Deleted '+found+' item(s) matching "'+title+'"':'No items found with that title');
+}
+
+function deleteCalItem(key,isMeetReq){
+  if(!key){showToast('Cannot delete — invalid key');return;}
+  const name=isMeetReq
+    ?(_meetReqs.find(r=>r._k===key)||{}).title||'this request'
+    :(_events.find(e=>e._k===key)||{}).title||'this event';
+  if(!confirm('Delete "'+name+'"?'))return;
+  if(isMeetReq)dbDel('meeting_requests/'+key);
+  else dbDel('events/'+key);
+  showToast('Deleted');
+}
+
+function purgeBadEvents(){
+  let purged=0;
+  _events.forEach(e=>{
+    if(!e.title||!e._k||e._k==='x'){
+      if(e._k)dbDel('events/'+e._k);purged++;
+    }
+  });
+  _meetReqs.forEach(r=>{
+    if(!r.title||!r._k){
+      if(r._k)dbDel('meeting_requests/'+r._k);purged++;
+    }
+  });
+  showToast(purged?purged+' ghost items purged':'No ghost items found');
+}
 
 bootApp();
 </script>
