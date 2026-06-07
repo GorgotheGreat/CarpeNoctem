@@ -1063,17 +1063,42 @@ function stAddEvent(){
 function stAddEventAndSendEmail(){
   const e=stBuildEvent();
   dbPush('events',e).then(ref=>{
-    e._k=ref.key;
-    // Set status to pending-player since we're sending a meeting request
-    dbSet('events/'+ref.key+'/status','pending-player');
-    dbSet('events/'+ref.key+'/meetingRequestSent',true);
-    // Pre-fill and open document generator for meeting request
-    if(_stUnlocked){
-      // Switch to doc generator with meeting request pre-filled
-      openMeetingRequestDocGen(e);
-    }
+    const key=ref.key;
+    e._k=key;
+    dbSet('events/'+key+'/status','pending-player');
+    dbSet('events/'+key+'/meetingRequestSent',true);
+    window._meetEmailEventKey=key;
+    // Build pre-filled body
+    const bodyParts=[
+      'You are requested to attend the following meeting:',
+      '',
+      '**'+(e.title||'Meeting')+'**',
+    ];
+    if(e.time&&e.time!=='TBD')bodyParts.push('Time: '+e.time);
+    if(e.location)bodyParts.push('Location: '+e.location);
+    if(e.attendeesInternal)bodyParts.push('Internal: '+e.attendeesInternal);
+    if(e.attendeesExternal)bodyParts.push('External: '+e.attendeesExternal);
+    if(e.timeRef){bodyParts.push('');bodyParts.push(e.timeRef);}
+    if(e.description){bodyParts.push('');bodyParts.push(e.description);}
+    bodyParts.push('');
+    bodyParts.push('Please confirm your attendance at your earliest convenience.');
+    const bodyText=bodyParts.join('\n');
+
+    showModal(
+      '<h2>&#128231; Send Meeting Request Email</h2>'+
+      '<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Event posted. Review and send the meeting request to the player.</p>'+
+      '<div class="form-row"><label>From</label><input class="input" id="mre-from" value="Carpe Noctem Management"></div>'+
+      '<div class="form-row"><label>Subject</label><input class="input" id="mre-subj" value="Meeting Request: '+(e.title||'')+'"></div>'+
+      '<div class="form-row"><label>Message</label><textarea class="input" id="mre-body" style="min-height:160px"></textarea></div>'+
+      '<div class="form-row"><label>Priority</label><select class="input" id="mre-pri"><option value="normal">Normal</option><option value="urgent">Urgent</option></select></div>'+
+      '<div class="modal-actions">'+
+      '<button class="btn" onclick="closeModal()">Cancel (send later via &#128231; button)</button>'+
+      '<button class="btn btn-primary" onclick="sendMeetingEmailDirect()">Send Email &rarr;</button>'+
+      '</div>'
+    );
+    setTimeout(()=>{const ta=document.getElementById('mre-body');if(ta)ta.value=bodyText;},50);
   });
-  showToast('Event created — opening document generator');
+  showToast('Event posted — compose email now');
   clearCalForm();
 }
 
