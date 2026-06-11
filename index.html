@@ -606,6 +606,17 @@ select.input option{background:#1c1c1e;}
 .cb-report-td.right{text-align:right;font-family:var(--mono);}
 .cb-report-total{background:rgba(255,255,255,0.04);font-weight:600;}
 .cb-transfer-form{padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+
+/* ── IMPORT HUB ── */
+.ih-row{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-bottom:0.5px solid var(--border2);font-size:12px;}
+.ih-row:last-child{border-bottom:none;}
+.ih-row-icon{width:18px;flex-shrink:0;text-align:center;margin-top:1px;}
+.ih-row-name{flex:1;min-width:0;}
+.ih-conflict-detail{margin-top:6px;padding:6px 8px;background:rgba(255,214,10,0.06);border:0.5px solid rgba(255,214,10,0.15);border-radius:var(--radius-xs);font-size:10px;color:var(--text2);line-height:1.5;}
+.ih-conflict-sel{display:flex;gap:6px;margin-top:5px;}
+.ih-conflict-btn{font-size:10px;padding:2px 8px;border-radius:var(--radius-xs);cursor:pointer;border:0.5px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text3);transition:all .12s;font-family:var(--font);}
+.ih-conflict-btn.ck{background:rgba(52,199,89,0.12);border-color:var(--green);color:var(--green);}
+.ih-conflict-btn.cow{background:rgba(159,111,255,0.15);border-color:var(--accent2);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -846,6 +857,50 @@ select.input option{background:#1c1c1e;}
           <div class="form-row"><label>Headline</label><input class="input" id="sr-hl" placeholder="Short summary…"></div>
           <div class="form-row"><label>Body</label><textarea class="input" id="sr-body" style="min-height:90px" placeholder="Covers, revenue, incidents, notes…"></textarea></div>
           <button class="btn btn-primary" onclick="stPostReport()">Post →</button>
+        </div>
+      </div>
+
+      <!-- Import Hub -->
+      <div class="st-card collapsed" data-card-id="import-hub">
+        <div class="st-card-hdr" onclick="toggleSTCard('import-hub')">
+          <h2>📥 Import Hub</h2>
+          <span class="st-card-chevron">▾</span>
+        </div>
+        <div class="st-card-body">
+          <div class="form-row">
+            <label>Data Type</label>
+            <select class="input" id="ih-type" onchange="ihSelectType(this.value)">
+              <option value="">— Select data type —</option>
+              <option value="staff">Staff Members</option>
+              <option value="staff_rates">Staff Pay Rates</option>
+              <option value="menu_items">Menu Items</option>
+              <option value="vendors">Vendors</option>
+              <option value="contacts">Contacts</option>
+              <option value="budget_categories">Budget Categories</option>
+              <option value="budget_allocations">Budget Allocations</option>
+              <option value="capex_items">CapEx Assets</option>
+              <option value="bills">Bills / Invoices</option>
+              <option value="inventory">Inventory</option>
+              <option value="events">Calendar Events</option>
+            </select>
+          </div>
+          <div id="ih-div-indicator" style="display:none;padding:6px 10px;background:rgba(159,111,255,0.08);border:0.5px solid rgba(159,111,255,0.2);border-radius:var(--radius-xs);font-size:11px;color:var(--accent);margin-bottom:10px">
+            Importing to: <strong id="ih-div-name">—</strong>
+          </div>
+          <div class="form-row">
+            <label>JSON File</label>
+            <input type="file" id="ih-file" accept=".json" class="input" style="padding:6px;cursor:pointer" onchange="ihHandleFile(this)">
+          </div>
+          <div id="ih-status" style="display:none;padding:7px 10px;border-radius:var(--radius-xs);font-size:12px;margin-bottom:10px"></div>
+          <div id="ih-preview-wrap" style="display:none">
+            <div id="ih-bulk-controls" style="display:none;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:11px;color:var(--text2)">Conflicts:</span>
+              <button class="btn btn-sm" style="font-size:10px" onclick="ihBulkConflict('overwrite')">Select All → Overwrite</button>
+              <button class="btn btn-sm" style="font-size:10px" onclick="ihBulkConflict('keep')">Select All → Keep Existing</button>
+            </div>
+            <div id="ih-preview-list" style="max-height:320px;overflow-y:auto;border:0.5px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:10px"></div>
+          </div>
+          <button class="btn btn-primary" id="ih-confirm-btn" onclick="ihConfirmImport()" style="opacity:0.4;cursor:not-allowed" disabled>Import records to Firebase</button>
         </div>
       </div>
 
@@ -4262,7 +4317,8 @@ let _staffRates={},_payrollRuns=[],_cbBudgetTab='overview',_cbPayrollView='roste
 let _pendingRates={}; // in-memory buffer for rate edits
 let _transfers=[],_cbTransferFilter='all';
 let _divisionSnapshots={}; // cache for parent dashboard cross-division reads
-let _calView='week',_calOffset=0;
+let _calView=(localStorage.getItem('cal_view')||'week');
+let _calOffset=parseInt(localStorage.getItem('cal_offset')||'0',10);
 const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTHS=['Month 1','Month 2','Month 3','Month 4','Month 5','Month 6','Month 7','Month 8','Month 9','Month 10','Month 11','Month 12'];
 const EVT_COLORS={Meeting:'evt-meeting',Obligation:'evt-obligation',Deadline:'evt-deadline',Social:'evt-social',Hazard:'evt-hazard',Business:'evt-business','Renovation / Construction':'evt-renovation',Other:'evt-other'};
@@ -5324,6 +5380,7 @@ function initCollapsibleCards(){
     'calendar-mgmt':true,
     'doc-generator':true,
     'carpebooks':true,
+    'import-hub':true,
     'config':true
   };
   Object.entries(defaults).forEach(([id,defaultCollapsed])=>{
@@ -6595,6 +6652,8 @@ function parseTimeSort(t){
 function setCalView(v){
   _calView=v;
   _calOffset=0;
+  localStorage.setItem('cal_view',_calView);
+  localStorage.setItem('cal_offset','0');
   ['week','month','year','list'].forEach(k=>{
     const el=document.getElementById('cv-'+k);
     if(el)el.classList.toggle('active',k===v);
@@ -6604,6 +6663,7 @@ function setCalView(v){
 
 function calNav(dir){
   _calOffset+=dir;
+  localStorage.setItem('cal_offset',String(_calOffset));
   renderCalendar();
 }
 
@@ -7885,6 +7945,273 @@ function purgeBadEvents(){
     }
   });
   showToast(purged?purged+' ghost items purged':'No ghost items found');
+}
+
+// ═══════════════════════════════════════════════════
+//  IMPORT HUB
+// ═══════════════════════════════════════════════════
+
+const IH_TYPES={
+  staff:             {label:'Staff Members',       divScoped:false,conflictKey:'name',         alwaysNew:false,isLookup:false,requiresPeriod:false},
+  staff_rates:       {label:'Staff Pay Rates',     divScoped:true, conflictKey:null,            alwaysNew:false,isLookup:true, requiresPeriod:false},
+  menu_items:        {label:'Menu Items',           divScoped:false,conflictKey:'name',         alwaysNew:false,isLookup:false,requiresPeriod:false},
+  vendors:           {label:'Vendors',              divScoped:true, conflictKey:'name',         alwaysNew:false,isLookup:false,requiresPeriod:false},
+  contacts:          {label:'Contacts',             divScoped:false,conflictKey:'name',         alwaysNew:false,isLookup:false,requiresPeriod:false},
+  budget_categories: {label:'Budget Categories',   divScoped:true, conflictKey:'name',         alwaysNew:false,isLookup:false,requiresPeriod:false},
+  budget_allocations:{label:'Budget Allocations',  divScoped:true, conflictKey:null,            alwaysNew:false,isLookup:true, requiresPeriod:true},
+  capex_items:       {label:'CapEx Assets',         divScoped:true, conflictKey:null,           alwaysNew:true, isLookup:false,requiresPeriod:false},
+  bills:             {label:'Bills / Invoices',    divScoped:true, conflictKey:'invoiceNumber', alwaysNew:false,isLookup:false,requiresPeriod:false},
+  inventory:         {label:'Inventory',            divScoped:false,conflictKey:'name',         alwaysNew:false,isLookup:false,requiresPeriod:false},
+  events:            {label:'Calendar Events',      divScoped:false,conflictKey:null,           alwaysNew:true, isLookup:false,requiresPeriod:false}
+};
+
+const IH_DEFAULTS={
+  staff:             {division:'la',status:'Active'},
+  staff_rates:       {payType:'Salary'},
+  menu_items:        {available:true,category:'General'},
+  vendors:           {status:'Active',category:'Other'},
+  contacts:          {type:'Contact'},
+  budget_categories: {icon:'📦',color:'#636366',stOnly:false},
+  budget_allocations:{},
+  capex_items:       {status:'active',category:'Other'},
+  bills:             {status:'pending',isCapEx:false},
+  inventory:         {unit:'units',parLevel:0},
+  events:            {status:'upcoming',type:'event',titleRevealed:true,eyesOnlyRevealed:true}
+};
+
+let _ihType=null;
+let _ihParsed=[];
+let _ihConflictChoice={};
+
+function ihGetExisting(type){
+  const map={staff:_staff,menu_items:_menu,vendors:_vendors,contacts:_contacts,
+    budget_categories:_budgetCategories,bills:_bills,inventory:_inv};
+  return map[type]||[];
+}
+
+function ihSelectType(type){
+  _ihType=type||null;
+  _ihParsed=[];
+  _ihConflictChoice={};
+  const cfg=IH_TYPES[type];
+  const ind=document.getElementById('ih-div-indicator');
+  if(cfg&&cfg.divScoped){
+    const divName=(_divisions.find(d=>d._k===_activeDivision)||{name:_activeDivision}).name||_activeDivision;
+    document.getElementById('ih-div-name').textContent=divName;
+    ind.style.display='';
+  } else {
+    ind.style.display='none';
+  }
+  document.getElementById('ih-file').value='';
+  document.getElementById('ih-status').style.display='none';
+  document.getElementById('ih-preview-wrap').style.display='none';
+  ihResetBtn();
+}
+
+function ihResetBtn(label){
+  const btn=document.getElementById('ih-confirm-btn');
+  btn.disabled=true;btn.style.opacity='0.4';btn.style.cursor='not-allowed';
+  btn.textContent=label||'Import records to Firebase';
+}
+
+function ihHandleFile(input){
+  if(!_ihType){showToast('Select a data type first');input.value='';return;}
+  const file=input.files[0];if(!file)return;
+  const cfg=IH_TYPES[_ihType];
+  if(cfg.requiresPeriod&&!_activePeriodKey){
+    ihSetStatus('red','❌ No active budget period. Create a period first.');
+    document.getElementById('ih-preview-wrap').style.display='none';
+    ihResetBtn();return;
+  }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let data;
+    try{data=JSON.parse(e.target.result);}catch(err){
+      ihSetStatus('red','❌ Invalid JSON — check file format');
+      document.getElementById('ih-preview-wrap').style.display='none';
+      ihResetBtn();return;
+    }
+    if(!Array.isArray(data)){
+      ihSetStatus('red','❌ JSON must be an array of records');
+      document.getElementById('ih-preview-wrap').style.display='none';
+      ihResetBtn();return;
+    }
+    if(!data.length){
+      ihSetStatus('amber','⚠️ File contains 0 records');
+      document.getElementById('ih-preview-wrap').style.display='none';
+      ihResetBtn();return;
+    }
+    ihProcessRecords(data);
+  };
+  reader.readAsText(file);
+}
+
+function ihProcessRecords(data){
+  const cfg=IH_TYPES[_ihType];
+  const defs=IH_DEFAULTS[_ihType]||{};
+  const existing=ihGetExisting(_ihType);
+  _ihParsed=[];
+  _ihConflictChoice={};
+
+  data.forEach((raw,i)=>{
+    const rec=Object.assign({},defs,raw);
+    const defaultsApplied=Object.keys(defs).filter(k=>raw[k]===undefined);
+    let status=defaultsApplied.length?'defaulted':'ready';
+    let existingKey=null,existingRec=null,lookupKey=null;
+
+    if(cfg.alwaysNew){
+      // capex_items, events — always push, no conflict check
+    } else if(_ihType==='staff_rates'){
+      const s=_staff.find(st=>st.name===rec.staffName);
+      if(!s){status='skip';}
+      else{lookupKey=s._k;status=defaultsApplied.length?'defaulted':'ready';}
+    } else if(_ihType==='budget_allocations'){
+      const cat=_budgetCategories.find(c=>c.name===rec.categoryName);
+      if(!cat){status='skip';}
+      else{lookupKey=cat._k;status=defaultsApplied.length?'defaulted':'ready';}
+    } else if(cfg.conflictKey){
+      const found=existing.find(e=>e[cfg.conflictKey]===rec[cfg.conflictKey]);
+      if(found){
+        existingKey=found._k;existingRec=found;status='conflict';
+        _ihConflictChoice[i]='keep';
+      }
+    }
+
+    _ihParsed.push({rec,status,existingKey,existingRec,lookupKey,defaultsApplied,origIndex:i});
+  });
+
+  ihRenderPreview();
+}
+
+function ihRenderPreview(){
+  const ready=_ihParsed.filter(r=>r.status==='ready'||r.status==='defaulted').length;
+  const conflicts=_ihParsed.filter(r=>r.status==='conflict').length;
+  const warnings=_ihParsed.filter(r=>r.status==='skip').length;
+
+  let color='green',msg=ready+' record'+(ready!==1?'s':'')+' ready to import';
+  if(conflicts||warnings){
+    color='amber';
+    const parts=[ready+' record'+(ready!==1?'s':'')+' ready'];
+    if(conflicts)parts.push(conflicts+' conflict'+(conflicts!==1?'s':''));
+    if(warnings)parts.push(warnings+' warning'+(warnings!==1?'s':''));
+    msg=parts.join(' · ');
+  }
+  ihSetStatus(color,msg);
+
+  const list=document.getElementById('ih-preview-list');
+  list.innerHTML='';
+  _ihParsed.forEach((item,i)=>{
+    const row=document.createElement('div');row.className='ih-row';
+    const iconMap={ready:'✅',defaulted:'🔄',conflict:'⚠️',skip:'❌'};
+    const icon=iconMap[item.status]||'✅';
+    const name=item.rec.name||item.rec.title||item.rec.staffName||item.rec.vendorName||item.rec.categoryName||item.rec.invoiceNumber||('Record '+(i+1));
+    let inner='<div class="ih-row-icon">'+icon+'</div><div class="ih-row-name"><strong>'+name+'</strong>';
+    if(item.defaultsApplied&&item.defaultsApplied.length&&item.status!=='skip'){
+      inner+='<div style="font-size:10px;color:var(--text3);margin-top:2px">Defaults applied: '+item.defaultsApplied.join(', ')+'</div>';
+    }
+    if(item.status==='skip'){
+      const why=_ihType==='staff_rates'?'staff name not found':'category not found';
+      inner+='<div style="font-size:10px;color:var(--red);margin-top:2px">Unresolvable — '+why+'</div>';
+    }
+    if(item.status==='conflict'){
+      const choice=_ihConflictChoice[item.origIndex]||'keep';
+      const existSnippet=JSON.stringify(item.existingRec||{}).replace(/"_k":"[^"]*",?/g,'').replace(/"_ts":\d+,?/g,'');
+      const dispSnippet=existSnippet.length>100?existSnippet.slice(0,100)+'…':existSnippet;
+      inner+='<div class="ih-conflict-detail">'
+        +'<div style="color:var(--text3)">Existing: '+dispSnippet+'</div>'
+        +'<div class="ih-conflict-sel">'
+        +'<button class="ih-conflict-btn'+(choice==='keep'?' ck':'')+'" onclick="ihSetConflict('+item.origIndex+',\'keep\')">Keep existing</button>'
+        +'<button class="ih-conflict-btn'+(choice==='overwrite'?' cow':'')+'" onclick="ihSetConflict('+item.origIndex+',\'overwrite\')">Overwrite</button>'
+        +'</div></div>';
+    }
+    inner+='</div>';
+    row.innerHTML=inner;
+    list.appendChild(row);
+  });
+
+  const bulkCtrl=document.getElementById('ih-bulk-controls');
+  bulkCtrl.style.display=conflicts>0?'flex':'none';
+
+  document.getElementById('ih-preview-wrap').style.display='';
+
+  const total=ready+conflicts;
+  const btn=document.getElementById('ih-confirm-btn');
+  if(total>0){
+    btn.disabled=false;btn.style.opacity='';btn.style.cursor='';
+    btn.textContent='Import '+total+' record'+(total!==1?'s':'')+' to Firebase';
+  } else {
+    ihResetBtn();
+  }
+}
+
+function ihSetConflict(idx,choice){
+  _ihConflictChoice[idx]=choice;
+  ihRenderPreview();
+}
+
+function ihBulkConflict(choice){
+  _ihParsed.forEach(item=>{if(item.status==='conflict')_ihConflictChoice[item.origIndex]=choice;});
+  ihRenderPreview();
+}
+
+function ihSetStatus(color,msg){
+  const el=document.getElementById('ih-status');
+  const bg={
+    green:'background:rgba(52,199,89,0.12);border:0.5px solid rgba(52,199,89,0.25);color:var(--green)',
+    amber:'background:rgba(255,214,10,0.10);border:0.5px solid rgba(255,214,10,0.25);color:var(--amber)',
+    red:  'background:rgba(255,69,58,0.10);border:0.5px solid rgba(255,69,58,0.25);color:var(--red)'
+  }[color]||'';
+  el.setAttribute('style','display:block;padding:7px 10px;border-radius:var(--radius-xs);font-size:12px;margin-bottom:10px;'+bg);
+  el.textContent=msg;
+}
+
+async function ihConfirmImport(){
+  if(!_ihParsed.length)return;
+  let written=0,skipped=0;
+
+  for(let i=0;i<_ihParsed.length;i++){
+    const item=_ihParsed[i];
+    if(item.status==='skip'){skipped++;continue;}
+    if(item.status==='conflict'){
+      const choice=_ihConflictChoice[item.origIndex]||'keep';
+      if(choice==='keep'){skipped++;continue;}
+      const rec=Object.assign({},item.rec,{_ts:Date.now()});
+      await dbSet(ihBasePath()+'/'+item.existingKey,rec);
+      written++;continue;
+    }
+    const rec=Object.assign({},item.rec,{_ts:Date.now()});
+    if(_ihType==='staff_rates'){
+      const r={payType:rec.payType||'Salary',rate:rec.rate||0,_ts:rec._ts};
+      await dbSet(divPath('staff_rates/'+item.lookupKey),r);
+    } else if(_ihType==='budget_allocations'){
+      await dbSet(divPath('budget_allocations/'+_activePeriodKey+'/'+item.lookupKey),rec.amount||0);
+    } else {
+      await dbPush(ihBasePath(),rec);
+    }
+    written++;
+  }
+
+  showToast('Imported '+written+' record'+(written!==1?'s':'')+' · '+skipped+' skipped');
+  ihReset();
+}
+
+function ihBasePath(){
+  const paths={
+    staff:'staff',menu_items:'menu_items',contacts:'contacts',inventory:'inventory',events:'events',
+    vendors:divPath('vendors'),budget_categories:divPath('budget_categories'),
+    capex_items:divPath('capex_items'),bills:divPath('bills')
+  };
+  return paths[_ihType]||_ihType;
+}
+
+function ihReset(){
+  _ihType=null;_ihParsed=[];_ihConflictChoice={};
+  const sel=document.getElementById('ih-type');if(sel)sel.value='';
+  const fi=document.getElementById('ih-file');if(fi)fi.value='';
+  const st=document.getElementById('ih-status');if(st)st.style.display='none';
+  const pw=document.getElementById('ih-preview-wrap');if(pw)pw.style.display='none';
+  const ind=document.getElementById('ih-div-indicator');if(ind)ind.style.display='none';
+  ihResetBtn();
 }
 
 bootApp();
