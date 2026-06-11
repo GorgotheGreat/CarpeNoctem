@@ -186,6 +186,19 @@ select.input option{background:#1c1c1e;}
 .st-card{background:#0d0d0f;border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;}
 .st-card h2{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:13px;text-transform:uppercase;letter-spacing:.6px;}
 .st-full{grid-column:1/-1;}
+/* ── ST CARD COLLAPSIBLE ── */
+.st-card{padding:0}
+.st-card h2{margin-bottom:0}
+.st-card-hdr{display:flex;align-items:center;padding:0 16px;height:36px;cursor:pointer;user-select:none;gap:8px;border-radius:var(--radius) var(--radius) 0 0;}
+.st-card-hdr:hover{background:rgba(255,255,255,0.03);}
+.st-card.collapsed .st-card-hdr{border-radius:var(--radius);}
+.st-card-body{padding:12px 16px 16px;overflow:hidden;transition:max-height 150ms ease,padding-bottom 150ms ease;max-height:4000px;}
+.st-card.collapsed .st-card-body{max-height:0;padding-bottom:0;overflow:hidden;}
+.st-card-chevron{margin-left:auto;font-size:10px;color:var(--text3);transition:transform 150ms ease;flex-shrink:0;}
+.st-card.collapsed .st-card-chevron{transform:rotate(-90deg);}
+.st-cb-pending-badge{font-size:10px;font-weight:600;color:var(--amber);margin-left:4px;}
+.st-cb-badge{font-size:10px;font-weight:500;color:var(--amber);}
+#st-cb-tabs{margin:0 -16px 12px;padding:0 16px;}
 .gen-result{margin-top:12px;padding:13px;background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);display:none;}
 .gen-result.show{display:block;}
 
@@ -222,11 +235,16 @@ select.input option{background:#1c1c1e;}
 .cal-day-header.today{color:var(--accent);}
 .cal-day-body{flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:3px;}
 .cal-day-body.drag-over{background:rgba(159,111,255,0.08);}
+/* ── CLICK-TO-ADD LAYERS ── */
+.cal-day-content{position:relative;flex:1;overflow-y:auto;}
+.cal-day-bg{position:absolute;inset:0;z-index:1;cursor:crosshair;}
+.cal-day-events{position:relative;z-index:2;pointer-events:none;padding:4px;display:flex;flex-direction:column;gap:3px;}
+.cal-click-popover{position:fixed;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;z-index:9000;width:234px;box-shadow:0 8px 32px rgba(0,0,0,.5);}
 
 /* Month view */
 .cal-month{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:auto;overflow-y:auto;}
 .cal-month-header{padding:6px 4px;text-align:center;font-size:10px;font-weight:600;color:var(--text3);border-bottom:0.5px solid var(--border2);border-right:0.5px solid var(--border2);background:rgba(255,255,255,0.03);}
-.cal-month-cell{min-height:80px;border-right:0.5px solid var(--border2);border-bottom:0.5px solid var(--border2);padding:4px;overflow:hidden;cursor:pointer;transition:background .12s;}
+.cal-month-cell{min-height:80px;border-right:0.5px solid var(--border2);border-bottom:0.5px solid var(--border2);padding:4px;overflow:hidden;cursor:pointer;transition:background .12s;position:relative;}
 .cal-month-cell:hover{background:rgba(255,255,255,0.03);}
 .cal-month-cell.other-week{opacity:.4;}
 .cal-month-cell.current-day{background:rgba(159,111,255,0.06);}
@@ -242,7 +260,7 @@ select.input option{background:#1c1c1e;}
 .cal-year-cell.multi-event{background:var(--accent);}
 
 /* Event cards */
-.cal-event-card{padding:4px 7px;border-radius:5px;font-size:11px;font-weight:500;cursor:grab;user-select:none;transition:transform .1s,box-shadow .1s;position:relative;border-left:3px solid transparent;}
+.cal-event-card{padding:4px 7px;border-radius:5px;font-size:11px;font-weight:500;cursor:grab;user-select:none;transition:transform .1s,box-shadow .1s;position:relative;border-left:3px solid transparent;pointer-events:auto;}
 .cal-event-card:active{cursor:grabbing;}
 .cal-event-card.dragging{opacity:.5;transform:scale(0.97);}
 .cal-event-card.completed{opacity:.35;text-decoration:line-through;}
@@ -255,7 +273,7 @@ select.input option{background:#1c1c1e;}
 .cal-event-attendees{font-size:9px;opacity:.65;margin-top:1px;}
 
 /* Month pills */
-.cal-month-pill{font-size:9px;padding:1px 4px;border-radius:3px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+.cal-month-pill{font-size:9px;padding:1px 4px;border-radius:3px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;pointer-events:auto;}
 
 /* List view */
 .cal-list-section{padding:8px 14px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;}
@@ -537,6 +555,12 @@ select.input option{background:#1c1c1e;}
 .cb-status-disputed{background:rgba(255,69,58,0.15);color:var(--red);}
 .cb-status-scheduled{background:rgba(191,154,255,0.15);color:var(--accent);}
 .cb-status-completed{background:rgba(52,199,89,0.1);color:var(--green);}
+.tx-rev-badge{display:inline-block;font-size:10px;font-weight:600;color:var(--red);padding:1px 5px;border:1px solid var(--red);border-radius:3px;letter-spacing:.5px}
+.tx-rev-counter-badge{display:inline-block;font-size:10px;font-weight:600;color:var(--amber);padding:1px 5px;border:1px solid var(--amber);border-radius:3px;letter-spacing:.5px}
+.tx-reversed-row{opacity:.55}
+.tx-reversed-row td{text-decoration:line-through}
+.tx-rev-btn{font-size:11px;padding:2px 6px;opacity:.6;line-height:1.2}
+.tx-rev-btn:hover{opacity:1}
 .cb-status-cancelled{background:rgba(152,152,159,0.12);color:var(--text3);}
 .cb-bill-detail{padding:20px;display:flex;flex-direction:column;gap:12px;}
 .cb-detail-row{display:flex;gap:8px;align-items:baseline;}
@@ -703,8 +727,12 @@ select.input option{background:#1c1c1e;}
     <div class="st-grid">
 
       <!-- Revenue Generator -->
-      <div class="st-card st-full" style="border-color:rgba(159,111,255,0.2)">
-        <h2>💰 Revenue & Expense Generator</h2>
+      <div class="st-card st-full collapsed" data-card-id="revenue-gen" style="border-color:rgba(159,111,255,0.2)">
+        <div class="st-card-hdr" onclick="toggleSTCard('revenue-gen')">
+          <h2>💰 Revenue & Expense Generator</h2>
+          <span class="st-card-chevron">▾</span>
+        </div>
+        <div class="st-card-body">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
           <div class="form-row" style="margin:0"><label>Nights</label><input class="input" type="number" id="g-nights" value="1" min="1" max="90"></div>
           <div class="form-row" style="margin:0"><label>Avg Covers / Night</label><input class="input" type="number" id="g-covers" value="120" min="1"></div>
@@ -738,157 +766,171 @@ select.input option{background:#1c1c1e;}
           <button class="btn" onclick="generateRevenue(true)">Preview Only</button>
         </div>
         <div class="gen-result" id="gen-result"></div>
+        </div>
       </div>
 
-      <!-- Send Email -->
-      <div class="st-card">
-        <h2>✉️ Send Email to Player</h2>
-        <div class="form-row"><label>From (sender name)</label><input class="input" id="se-from" placeholder="e.g. Lux Spirits Distribution"></div>
-        <div class="form-row"><label>Subject</label><input class="input" id="se-subj" placeholder="Subject…"></div>
-        <div class="form-row"><label>Body</label><textarea class="input" id="se-body" style="min-height:80px"></textarea></div>
-        <div class="form-row"><label>Priority</label>
-          <select class="input" id="se-pri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="info">Info</option></select>
+      <!-- Communications -->
+      <div class="st-card collapsed" data-card-id="communications">
+        <div class="st-card-hdr" onclick="toggleSTCard('communications')">
+          <h2>✉️💬 Communications</h2>
+          <span class="st-card-chevron">▾</span>
         </div>
-        <button class="btn btn-primary" onclick="stSendEmail()">Send →</button>
-      </div>
-
-      <!-- Send Chat -->
-      <div class="st-card">
-        <h2>💬 Send Chat (as NPC)</h2>
-        <div class="form-row"><label>NPC / Contact Name</label><input class="input" id="sc-from" placeholder="e.g. Danny K."></div>
-        <div class="form-row"><label>Message</label><textarea class="input" id="sc-msg"></textarea></div>
-        <div class="form-row"><label>Type</label>
-          <select class="input" id="sc-type"><option value="npc">Normal NPC</option><option value="system">System Alert</option></select>
+        <div class="st-card-body">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Send Email to Player</div>
+          <div class="form-row"><label>From (sender name)</label><input class="input" id="se-from" placeholder="e.g. Lux Spirits Distribution"></div>
+          <div class="form-row"><label>Subject</label><input class="input" id="se-subj" placeholder="Subject…"></div>
+          <div class="form-row"><label>Body</label><textarea class="input" id="se-body" style="min-height:80px"></textarea></div>
+          <div class="form-row"><label>Priority</label>
+            <select class="input" id="se-pri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="info">Info</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="stSendEmail()">Send →</button>
+          <hr style="border:none;border-top:0.5px solid var(--border2);margin:14px 0">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Send Chat (as NPC)</div>
+          <div class="form-row"><label>NPC / Contact Name</label><input class="input" id="sc-from" placeholder="e.g. Danny K."></div>
+          <div class="form-row"><label>Message</label><textarea class="input" id="sc-msg"></textarea></div>
+          <div class="form-row"><label>Type</label>
+            <select class="input" id="sc-type"><option value="npc">Normal NPC</option><option value="system">System Alert</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="stSendChat()">Send →</button>
         </div>
-        <button class="btn btn-primary" onclick="stSendChat()">Send →</button>
       </div>
 
       <!-- Manual Transaction -->
-      <div class="st-card">
-        <h2>💵 Manual Bank Transaction</h2>
-        <div class="form-row"><label>Account</label><select class="input" id="st-tx-acct"><option value="">No accounts yet</option></select></div>
-        <div class="form-row"><label>Description</label><input class="input" id="st-tx-lbl" placeholder="e.g. Emergency HVAC repair"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="form-row">
-          <div><label>Amount ($)</label><input class="input" type="number" id="st-tx-amt" placeholder="0.00"></div>
-          <div><label>Type</label><select class="input" id="st-tx-type"><option value="income">Income (+)</option><option value="expense">Expense (−)</option></select></div>
+      <div class="st-card collapsed" data-card-id="manual-bank">
+        <div class="st-card-hdr" onclick="toggleSTCard('manual-bank')">
+          <h2>💵 Manual Bank Transaction</h2>
+          <span class="st-card-chevron">▾</span>
         </div>
-        <div class="form-row"><label>Date Label</label><input class="input" id="st-tx-date" placeholder="e.g. Friday May 23rd"></div>
-        <button class="btn btn-primary" onclick="stAddTx()">Post →</button>
+        <div class="st-card-body">
+          <div class="form-row"><label>Account</label><select class="input" id="st-tx-acct"><option value="">No accounts yet</option></select></div>
+          <div class="form-row"><label>Description</label><input class="input" id="st-tx-lbl" placeholder="e.g. Emergency HVAC repair"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="form-row">
+            <div><label>Amount ($)</label><input class="input" type="number" id="st-tx-amt" placeholder="0.00"></div>
+            <div><label>Type</label><select class="input" id="st-tx-type"><option value="income">Income (+)</option><option value="expense">Expense (−)</option></select></div>
+          </div>
+          <div class="form-row"><label>Date Label</label><input class="input" id="st-tx-date" placeholder="e.g. Friday May 23rd"></div>
+          <button class="btn btn-primary" onclick="stAddTx()">Post →</button>
+        </div>
       </div>
 
       <!-- Inventory Control -->
-      <div class="st-card">
-        <h2>🍾 Inventory Control</h2>
-        <div id="st-inv-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
-        <button class="btn" onclick="openInventoryModal(-1,{})">+ Add Item</button>
-      </div>
-
-      <!-- File Incident -->
-      <div class="st-card">
-        <h2>⚠️ File Incident</h2>
-        <div class="form-row"><label>Title</label><input class="input" id="si-title" placeholder="Brief description…"></div>
-        <div class="form-row"><label>Date / Shift</label><input class="input" id="si-date" placeholder="e.g. Friday, Late Shift"></div>
-        <div class="form-row"><label>Severity</label>
-          <select class="input" id="si-sev"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>
+      <div class="st-card collapsed" data-card-id="inventory">
+        <div class="st-card-hdr" onclick="toggleSTCard('inventory')">
+          <h2>🍾 Inventory Control</h2>
+          <span class="st-card-chevron">▾</span>
         </div>
-        <div class="form-row"><label>Details</label><textarea class="input" id="si-body"></textarea></div>
-        <button class="btn btn-primary" onclick="stFileIncident()">File →</button>
+        <div class="st-card-body">
+          <div id="st-inv-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+          <button class="btn" onclick="openInventoryModal(-1,{})">+ Add Item</button>
+        </div>
       </div>
 
-      <!-- Nightly Report -->
-      <div class="st-card">
-        <h2>📊 Post Nightly Report</h2>
-        <div class="form-row"><label>Night / Date</label><input class="input" id="sr-date" placeholder="e.g. Saturday May 24th"></div>
-        <div class="form-row"><label>Headline</label><input class="input" id="sr-hl" placeholder="Short summary…"></div>
-        <div class="form-row"><label>Body</label><textarea class="input" id="sr-body" style="min-height:90px" placeholder="Covers, revenue, incidents, notes…"></textarea></div>
-        <button class="btn btn-primary" onclick="stPostReport()">Post →</button>
+      <!-- Chronicle Log -->
+      <div class="st-card collapsed" data-card-id="chronicle">
+        <div class="st-card-hdr" onclick="toggleSTCard('chronicle')">
+          <h2>📋 Chronicle Log</h2>
+          <span class="st-card-chevron">▾</span>
+        </div>
+        <div class="st-card-body">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">File Incident</div>
+          <div class="form-row"><label>Title</label><input class="input" id="si-title" placeholder="Brief description…"></div>
+          <div class="form-row"><label>Date / Shift</label><input class="input" id="si-date" placeholder="e.g. Friday, Late Shift"></div>
+          <div class="form-row"><label>Severity</label>
+            <select class="input" id="si-sev"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>
+          </div>
+          <div class="form-row"><label>Details</label><textarea class="input" id="si-body"></textarea></div>
+          <button class="btn btn-primary" onclick="stFileIncident()">File →</button>
+          <hr style="border:none;border-top:0.5px solid var(--border2);margin:14px 0">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Post Nightly Report</div>
+          <div class="form-row"><label>Night / Date</label><input class="input" id="sr-date" placeholder="e.g. Saturday May 24th"></div>
+          <div class="form-row"><label>Headline</label><input class="input" id="sr-hl" placeholder="Short summary…"></div>
+          <div class="form-row"><label>Body</label><textarea class="input" id="sr-body" style="min-height:90px" placeholder="Covers, revenue, incidents, notes…"></textarea></div>
+          <button class="btn btn-primary" onclick="stPostReport()">Post →</button>
+        </div>
       </div>
 
       <!-- Config -->
-      <div class="st-card">
-        <h2>⚙️ Config</h2>
-        <div class="form-row"><label>Bar / Business Name</label><input class="input" id="cfg-name" placeholder="Velvet Anchor"></div>
-        <div class="form-row"><label>ST Passphrase</label><input class="input" type="password" id="cfg-pass" placeholder="New passphrase…"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="stSaveCfg()">Save Config</button>
-          <button class="btn btn-danger" onclick="confirmClear()">⚠ Reset All Data</button>
-          <button class="btn btn-sm" style="font-size:10px" onclick="purgeBadEvents()">🧹 Purge ghost events</button>
-          <button class="btn btn-sm" style="font-size:10px" onclick="deleteByTitle()">🔍 Delete by title</button>
+      <div class="st-card collapsed" data-card-id="config">
+        <div class="st-card-hdr" onclick="toggleSTCard('config')">
+          <h2>⚙️ Config</h2>
+          <span class="st-card-chevron">▾</span>
         </div>
-        <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm)">
-          <div style="font-size:11px;color:var(--text3)">Menu Avg Spend Analysis</div>
-          <div id="menu-avg-display" style="margin-top:6px;font-size:12px;color:var(--text2)">Open Menu app to see analysis.</div>
+        <div class="st-card-body">
+          <div class="form-row"><label>Bar / Business Name</label><input class="input" id="cfg-name" placeholder="Velvet Anchor"></div>
+          <div class="form-row"><label>ST Passphrase</label><input class="input" type="password" id="cfg-pass" placeholder="New passphrase…"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="stSaveCfg()">Save Config</button>
+            <button class="btn btn-danger" onclick="confirmClear()">⚠ Reset All Data</button>
+            <button class="btn btn-sm" style="font-size:10px" onclick="purgeBadEvents()">🧹 Purge ghost events</button>
+            <button class="btn btn-sm" style="font-size:10px" onclick="deleteByTitle()">🔍 Delete by title</button>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm)">
+            <div style="font-size:11px;color:var(--text3)">Menu Avg Spend Analysis</div>
+            <div id="menu-avg-display" style="margin-top:6px;font-size:12px;color:var(--text2)">Open Menu app to see analysis.</div>
+          </div>
         </div>
       </div>
 
 
       <!-- ST Monitor: Full Activity Feed -->
-      <div class="st-card st-full" style="border-color:rgba(10,132,255,0.2)">
-        <h2>👁 ST Monitor — All Activity <span id="st-alert-count" class="st-alert-badge" style="display:none">0</span></h2>
-        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="filterMonitor('all')" id="mon-all" style="font-size:10px">All</button>
-          <button class="btn btn-sm" onclick="filterMonitor('replies')" id="mon-replies" style="font-size:10px">Player Replies ⚡</button>
-          <button class="btn btn-sm" onclick="filterMonitor('email')" id="mon-email" style="font-size:10px">Emails</button>
-          <button class="btn btn-sm" onclick="filterMonitor('chat')" id="mon-chat" style="font-size:10px">Chat</button>
-          <button class="btn btn-sm" style="font-size:10px;margin-left:auto" onclick="clearSTAlerts()">Mark all read</button>
+      <div class="st-card st-full" data-card-id="st-monitor" style="border-color:rgba(10,132,255,0.2)">
+        <div class="st-card-hdr" onclick="toggleSTCard('st-monitor')">
+          <h2>👁 ST Monitor — All Activity <span id="st-alert-count" class="st-alert-badge" style="display:none">0</span></h2>
+          <span class="st-card-chevron">▾</span>
         </div>
-        <div class="st-monitor-feed" id="st-monitor-feed">
-          <div style="color:var(--text3);font-size:12px;padding:12px 0">No activity yet</div>
-        </div>
-      </div>
-
-      <!-- CarpeBooks (ST) -->
-      <div class="st-card st-full" style="border-color:rgba(52,199,89,0.15)">
-        <h2>💼 CarpeBooks (ST)</h2>
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-          <label style="font-size:11px;color:var(--text2)">Division:</label>
-          <select class="input" id="st-cb-division-select" style="font-size:12px;padding:5px 8px;max-width:220px" onchange="switchDivision(this.value)"></select>
-          <button class="btn btn-sm" onclick="migrateToCarpeBooks()">🔄 Run CarpeBooks Migration</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
-          <select class="input" id="st-bank-acct-select" style="font-size:12px;padding:5px 8px;max-width:220px" onchange="renderSTBankView()">
-            <option value="">— All accounts —</option>
-          </select>
-          <span style="font-size:11px;color:var(--text2)">Balance: <span id="st-bank-balance" style="font-family:var(--mono);color:var(--green)">$0.00</span></span>
-          <span style="font-size:11px;color:var(--text2);margin-left:8px">In: <span id="st-bank-in" style="color:var(--green);font-family:var(--mono)">$0</span></span>
-          <span style="font-size:11px;color:var(--text2);margin-left:8px">Out: <span id="st-bank-out" style="color:var(--red);font-family:var(--mono)">$0</span></span>
-        </div>
-        <div id="st-bank-feed" style="max-height:280px;overflow-y:auto"></div>
-      </div>
-
-      <!-- CarpeBooks Payroll Management -->
-      <div class="st-card st-full" style="border-color:rgba(90,200,250,0.15)">
-        <h2>👥 Payroll Management</h2>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Staff Pay Rates</div>
-            <div id="st-payroll-rates" style="max-height:200px;overflow-y:auto;margin-bottom:10px"><div style="font-size:11px;color:var(--text3)">Loading…</div></div>
-            <button class="btn btn-sm btn-primary" onclick="stSavePayRates()" style="font-size:11px">Save Rates</button>
+        <div class="st-card-body">
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="filterMonitor('all')" id="mon-all" style="font-size:10px">All</button>
+            <button class="btn btn-sm" onclick="filterMonitor('replies')" id="mon-replies" style="font-size:10px">Player Replies ⚡</button>
+            <button class="btn btn-sm" onclick="filterMonitor('email')" id="mon-email" style="font-size:10px">Emails</button>
+            <button class="btn btn-sm" onclick="filterMonitor('chat')" id="mon-chat" style="font-size:10px">Chat</button>
+            <button class="btn btn-sm" style="font-size:10px;margin-left:auto" onclick="clearSTAlerts()">Mark all read</button>
           </div>
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Pending Payroll</div>
-            <div id="st-payroll-pending" style="max-height:240px;overflow-y:auto;margin-bottom:10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm)"><div style="font-size:11px;color:var(--text3);padding:8px">No pending runs</div></div>
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Run Payroll Directly</div>
-            <div style="display:flex;gap:6px">
-              <input class="input" id="st-payroll-date" placeholder="Period reference" style="font-size:11px;padding:4px 8px">
-              <select class="input" id="st-payroll-acct" style="font-size:11px;padding:4px 8px;width:auto"></select>
-              <button class="btn btn-sm btn-primary" onclick="stRunPayrollDirect()" style="font-size:11px">Run →</button>
+          <div class="st-monitor-feed" id="st-monitor-feed">
+            <div style="color:var(--text3);font-size:12px;padding:12px 0">No activity yet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CarpeBooks ST Card -->
+      <div class="st-card st-full collapsed" data-card-id="carpebooks" style="border-color:rgba(52,199,89,0.2)">
+        <div class="st-card-hdr" onclick="toggleSTCard('carpebooks')">
+          <h2>💼 CarpeBooks<span class="st-cb-pending-badge" id="st-cb-pending-badge" style="display:none"></span></h2>
+          <span class="st-card-chevron">▾</span>
+        </div>
+        <div class="st-card-body">
+          <div class="tab-bar" id="st-cb-tabs">
+            <div class="tab active" data-tab="overview" onclick="switchSTCBTab('overview')">Overview</div>
+            <div class="tab" data-tab="bills" onclick="switchSTCBTab('bills')">Bills</div>
+            <div class="tab" data-tab="payments" onclick="switchSTCBTab('payments')">Payments</div>
+            <div class="tab" data-tab="payroll" onclick="switchSTCBTab('payroll')">Payroll</div>
+            <div class="tab" data-tab="budget" onclick="switchSTCBTab('budget')">Budget</div>
+            <div class="tab" data-tab="assets" onclick="switchSTCBTab('assets')">Assets</div>
+            <div class="tab" data-tab="divisions" onclick="switchSTCBTab('divisions')">Divisions</div>
+          </div>
+          <div class="tab-content active" id="st-cb-overview">
+            <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+              <label style="font-size:11px;color:var(--text2)">Division:</label>
+              <select class="input" id="st-cb-division-select" style="font-size:12px;padding:5px 8px;max-width:220px" onchange="switchDivision(this.value)"></select>
+              <button class="btn btn-sm" onclick="migrateToCarpeBooks()">🔄 Run Migration</button>
             </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+              <select class="input" id="st-bank-acct-select" style="font-size:12px;padding:5px 8px;max-width:220px" onchange="renderSTBankView()">
+                <option value="">— All accounts —</option>
+              </select>
+              <span style="font-size:11px;color:var(--text2)">Balance: <span id="st-bank-balance" style="font-family:var(--mono);color:var(--green)">$0.00</span></span>
+              <span style="font-size:11px;color:var(--text2);margin-left:8px">In: <span id="st-bank-in" style="color:var(--green);font-family:var(--mono)">$0</span></span>
+              <span style="font-size:11px;color:var(--text2);margin-left:8px">Out: <span id="st-bank-out" style="color:var(--red);font-family:var(--mono)">$0</span></span>
+            </div>
+            <div id="st-bank-feed" style="max-height:280px;overflow-y:auto"></div>
           </div>
-        </div>
-      </div>
-
-      <!-- CarpeBooks Bills Management -->
-      <div class="st-card st-full" style="border-color:rgba(52,199,89,0.15)">
-        <h2>💼 CarpeBooks — Bills & Payments</h2>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-          <div>
+          <!-- ── Bills Tab ── -->
+          <div class="tab-content" id="st-cb-bills">
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="stOpenInvoiceBuilder()" style="font-size:11px">🧾 Post New Invoice →</button>
+            </div>
             <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Pending Approvals</div>
-            <div id="st-cb-bills-pending" style="max-height:220px;overflow-y:auto;margin-bottom:10px"><div style="font-size:11px;color:var(--text3)">Loading…</div></div>
-          </div>
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Post Invoice / Bill</div>
-            <button class="btn btn-primary btn-sm" onclick="stOpenInvoiceBuilder()" style="margin-bottom:12px;font-size:11px">🧾 Post New Invoice →</button>
+            <div id="st-cb-bills-pending" style="margin-bottom:12px"><div style="font-size:11px;color:var(--text3)">Loading…</div></div>
             <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Bill Actions</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button class="btn btn-sm" style="font-size:10px" onclick="stPromptBillAction('hold')">⏸️ Hold Bill</button>
@@ -896,24 +938,134 @@ select.input option{background:#1c1c1e;}
               <button class="btn btn-sm" style="font-size:10px" onclick="stPromptBillAction('release')">✓ Release Hold</button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Intercompany Transfers -->
-      <div class="st-card" style="border-color:rgba(10,132,255,0.2)">
-        <h2>↔️ Intercompany Transfers</h2>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-primary btn-sm" onclick="stOpenTransferDirect()" style="font-size:11px">Post Transfer Directly</button>
-          <button class="btn btn-sm" onclick="initChicagoMetadata()" style="font-size:11px">🔧 Fix Chicago & Events Metadata</button>
-          <button class="btn btn-sm" onclick="stOpenAddDivision()" style="font-size:11px">+ Add Division</button>
-          <div style="font-size:10px;color:var(--text3);margin-top:4px">Division management</div>
-          <div id="st-division-list" style="max-height:100px;overflow-y:auto"></div>
+          <!-- ── Payments Tab ── -->
+          <div class="tab-content" id="st-cb-payments">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Pending Payment Approvals</div>
+            <div id="st-p-payments-list" style="margin-bottom:12px"><div style="font-size:11px;color:var(--text3)">Loading…</div></div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+              <button class="btn btn-primary btn-sm" onclick="stOpenTransferDirect()" style="font-size:11px">↔️ Post Transfer Directly</button>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Pending Transfers</div>
+            <div id="st-p-transfers-list" style="margin-bottom:14px"><div style="font-size:11px;color:var(--text3)">Loading…</div></div>
+            <hr style="border:none;border-top:0.5px solid var(--border2);margin:4px 0 12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Quick Reversal</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input class="input" id="st-rev-id" placeholder="Payment ID" style="font-size:11px;padding:4px 8px;flex:1" disabled>
+              <button class="btn btn-sm" style="font-size:10px;opacity:0.4;cursor:not-allowed" disabled>🔄 Reverse — Phase 3</button>
+            </div>
+          </div>
+
+          <!-- ── Payroll Tab ── -->
+          <div class="tab-content" id="st-cb-payroll">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Staff Pay Rates</div>
+                <div id="st-payroll-rates" style="max-height:200px;overflow-y:auto;margin-bottom:10px"><div style="font-size:11px;color:var(--text3)">Loading…</div></div>
+                <button class="btn btn-sm btn-primary" onclick="stSavePayRates()" style="font-size:11px">Save Rates</button>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Pending Payroll</div>
+                <div id="st-payroll-pending" style="max-height:240px;overflow-y:auto;margin-bottom:10px;border:0.5px solid var(--border2);border-radius:var(--radius-sm)"><div style="font-size:11px;color:var(--text3);padding:8px">No pending runs</div></div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Run Payroll Directly</div>
+                <div style="display:flex;gap:6px">
+                  <input class="input" id="st-payroll-date" placeholder="Period reference" style="font-size:11px;padding:4px 8px">
+                  <select class="input" id="st-payroll-acct" style="font-size:11px;padding:4px 8px;width:auto"></select>
+                  <button class="btn btn-sm btn-primary" onclick="stRunPayrollDirect()" style="font-size:11px">Run →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Budget Tab ── -->
+          <div class="tab-content" id="st-cb-budget">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Period</div>
+                <div style="background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);padding:10px;margin-bottom:10px" id="st-bgt-period-info">
+                  <div style="font-size:12px;color:var(--text2)" id="st-bgt-active-name">No active period</div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+                  <button class="btn btn-sm btn-primary" onclick="stOpenNewPeriod()">+ New Period</button>
+                  <button class="btn btn-sm" onclick="stClosePeriod()">✓ Close Period</button>
+                </div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Categories & Allocations</div>
+                <div style="max-height:300px;overflow-y:auto;border:0.5px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:10px">
+                  <table style="width:100%;border-collapse:collapse" id="st-bgt-alloc-list">
+                    <thead><tr>
+                      <th style="padding:6px 10px;font-size:9px;color:var(--text3);text-align:left;border-bottom:0.5px solid var(--border);background:rgba(255,255,255,0.03)">Category</th>
+                      <th style="padding:6px 10px;font-size:9px;color:var(--text3);text-align:right;border-bottom:0.5px solid var(--border);background:rgba(255,255,255,0.03)">Allocation ($)</th>
+                      <th style="padding:6px 8px;font-size:9px;color:var(--text3);border-bottom:0.5px solid var(--border);background:rgba(255,255,255,0.03);width:60px"></th>
+                    </tr></thead>
+                    <tbody id="st-bgt-alloc-body"></tbody>
+                  </table>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-sm btn-primary" onclick="stSaveBgtAllocations()">Save Allocations</button>
+                  <button class="btn btn-sm" onclick="stAddBgtCategory()">+ Category</button>
+                </div>
+                <div style="margin-top:12px">
+                  <label style="font-size:11px">Alert Threshold (%)</label>
+                  <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
+                    <input class="input" type="number" id="bgt-threshold" value="80" min="1" max="100" style="width:70px;padding:5px 8px;font-size:12px">
+                    <button class="btn btn-sm" onclick="stSaveBgtThreshold()">Save</button>
+                    <span style="font-size:11px;color:var(--text3)">⚠️ fires alert at this %</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Pending Entries <span id="st-bgt-pending-ct" style="color:var(--amber)"></span></div>
+                <div id="st-bgt-pending-list" style="max-height:200px;overflow-y:auto;margin-bottom:10px"></div>
+                <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Quick Add Expense</div>
+                <div class="form-row">
+                  <label>Category</label>
+                  <select class="input" id="st-be-cat" style="font-size:12px;padding:5px 8px"></select>
+                </div>
+                <div class="form-row"><label>Description</label><input class="input" id="st-be-desc" placeholder="Description…"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" class="form-row">
+                  <div><label>Amount ($)</label><input class="input" type="number" id="st-be-amt"></div>
+                  <div><label>Date Ref</label><input class="input" id="st-be-date" placeholder="e.g. Friday"></div>
+                </div>
+                <button class="btn btn-primary" onclick="stAddBgtEntry()" style="font-size:11px">Post Expense →</button>
+                <div style="margin-top:12px">
+                  <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Link Bank Transaction</div>
+                  <select class="input" id="st-bgt-tx-select" style="font-size:11px;margin-bottom:6px">
+                    <option value="">— Select untagged expense transaction —</option>
+                  </select>
+                  <select class="input" id="st-bgt-tx-cat" style="font-size:11px;margin-bottom:6px">
+                    <option value="">— Select category —</option>
+                  </select>
+                  <button class="btn btn-sm btn-primary" onclick="stLinkBankTx()">Link →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Assets Tab ── -->
+          <div class="tab-content" id="st-cb-assets">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Active Assets</div>
+            <div id="st-capex-list" style="max-height:320px;overflow-y:auto;margin-bottom:10px;font-size:11px;color:var(--text3)">Loading…</div>
+            <button class="btn btn-sm btn-primary" onclick="stOpenAddCapEx()">+ Add Asset</button>
+          </div>
+
+          <!-- ── Divisions Tab ── -->
+          <div class="tab-content" id="st-cb-divisions">
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <button class="btn btn-sm btn-primary" onclick="stOpenAddDivision()" style="font-size:11px">+ Add Division</button>
+              <button class="btn btn-sm" onclick="initChicagoMetadata()" style="font-size:11px">🔧 Fix Chicago & Events Metadata</button>
+            </div>
+            <div id="st-division-list" style="max-height:280px;overflow-y:auto"></div>
+          </div>
         </div>
       </div>
 
       <!-- Calendar Management -->
-      <div class="st-card st-full" style="border-color:rgba(42,26,106,0.6)">
-        <h2>🗓️ Calendar Management</h2>
+      <div class="st-card st-full collapsed" data-card-id="calendar-mgmt" style="border-color:rgba(42,26,106,0.6)">
+        <div class="st-card-hdr" onclick="toggleSTCard('calendar-mgmt')">
+          <h2>🗓️ Calendar Management</h2>
+          <span class="st-card-chevron">▾</span>
+        </div>
+        <div class="st-card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 
           <!-- Add Event -->
@@ -1006,88 +1158,7 @@ select.input option{background:#1c1c1e;}
           </div>
 
         </div>
-      </div>
-
-      <!-- Budget Management -->
-      <div class="st-card st-full" style="border-color:rgba(52,199,89,0.2)">
-        <h2>💰 Budget Management</h2>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-
-          <!-- Left: Period + Allocations -->
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Period</div>
-            <div style="background:rgba(255,255,255,0.04);border-radius:var(--radius-sm);padding:10px;margin-bottom:10px" id="st-bgt-period-info">
-              <div style="font-size:12px;color:var(--text2)" id="st-bgt-active-name">No active period</div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-              <button class="btn btn-sm btn-primary" onclick="stOpenNewPeriod()">+ New Period</button>
-              <button class="btn btn-sm" onclick="stClosePeriod()">✓ Close Period</button>
-            </div>
-
-                    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Categories & Allocations</div>
-            <div style="max-height:300px;overflow-y:auto;border:0.5px solid var(--border2);border-radius:var(--radius-sm);margin-bottom:10px">
-              <table style="width:100%;border-collapse:collapse" id="st-bgt-alloc-list">
-                <thead><tr>
-                  <th style="padding:6px 10px;font-size:9px;color:var(--text3);text-align:left;border-bottom:0.5px solid var(--border);background:rgba(255,255,255,0.03)">Category</th>
-                  <th style="padding:6px 10px;font-size:9px;color:var(--text3);text-align:right;border-bottom:0.5px solid var(--border);background:rgba(255,255,255,0.03)">Allocation ($)</th>
-                  <th style="padding:6px 8px;font-size:9px;color:var(--text3);border-bottom:0.5px solid var(--border);background:rgba(255,255,255,0.03);width:60px"></th>
-                </tr></thead>
-                <tbody id="st-bgt-alloc-body"></tbody>
-              </table>
-            </div>
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-sm btn-primary" onclick="stSaveBgtAllocations()">Save Allocations</button>
-              <button class="btn btn-sm" onclick="stAddBgtCategory()">+ Category</button>
-            </div>
-
-            <div style="margin-top:12px">
-              <label style="font-size:11px">Alert Threshold (%)</label>
-              <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
-                <input class="input" type="number" id="bgt-threshold" value="80" min="1" max="100" style="width:70px;padding:5px 8px;font-size:12px">
-                <button class="btn btn-sm" onclick="stSaveBgtThreshold()">Save</button>
-                <span style="font-size:11px;color:var(--text3)">⚠️ fires alert at this %</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: Entries + Link Bank -->
-          <div>
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Pending Entries <span id="st-bgt-pending-ct" style="color:var(--amber)"></span></div>
-            <div id="st-bgt-pending-list" style="max-height:200px;overflow-y:auto;margin-bottom:10px"></div>
-
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Capital Assets (CapEx)</div>
-            <div id="st-capex-list" style="max-height:140px;overflow-y:auto;margin-bottom:6px;font-size:11px;color:var(--text3)">Loading…</div>
-            <button class="btn btn-sm btn-primary" onclick="stOpenAddCapEx()" style="margin-bottom:14px">+ Add Asset</button>
-
-            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Quick Add Expense</div>
-            <div class="form-row">
-              <label>Category</label>
-              <select class="input" id="st-be-cat" style="font-size:12px;padding:5px 8px"></select>
-            </div>
-            <div class="form-row"><label>Description</label><input class="input" id="st-be-desc" placeholder="Description…"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" class="form-row">
-              <div><label>Amount ($)</label><input class="input" type="number" id="st-be-amt"></div>
-              <div><label>Date Ref</label><input class="input" id="st-be-date" placeholder="e.g. Friday"></div>
-            </div>
-            <button class="btn btn-primary" onclick="stAddBgtEntry()" style="font-size:11px">Post Expense →</button>
-
-            <div style="margin-top:12px">
-              <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Link Bank Transaction</div>
-              <select class="input" id="st-bgt-tx-select" style="font-size:11px;margin-bottom:6px">
-                <option value="">— Select untagged expense transaction —</option>
-              </select>
-              <select class="input" id="st-bgt-tx-cat" style="font-size:11px;margin-bottom:6px">
-                <option value="">— Select category —</option>
-              </select>
-              <button class="btn btn-sm btn-primary" onclick="stLinkBankTx()">Link →</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ST Calendar View -->
-      <div class="st-card st-full" style="border-color:rgba(42,26,106,0.4)">
-        <h2>🗓️ Calendar View (ST)</h2>
+        <hr style="border:none;border-top:0.5px solid var(--border2);margin:14px 0">
         <div class="cal-toolbar" style="padding:6px 0;border:none;margin-bottom:8px">
           <div class="cal-view-btns">
             <div class="cal-view-btn active" id="st-cv-week" onclick="setSTCalView('week')">Week</div>
@@ -1101,12 +1172,16 @@ select.input option{background:#1c1c1e;}
           </div>
         </div>
         <div id="st-cal-view" style="min-height:340px;max-height:500px;overflow:auto;border:0.5px solid var(--border2);border-radius:var(--radius-sm)"></div>
+        </div>
       </div>
 
       <!-- AI Document Generator -->
-      <div class="st-card st-full" style="border-color:rgba(10,132,255,0.25)">
-        <h2>🤖 AI Document Generator</h2>
-
+      <div class="st-card st-full collapsed" data-card-id="doc-generator" style="border-color:rgba(10,132,255,0.25)">
+        <div class="st-card-hdr" onclick="toggleSTCard('doc-generator')">
+          <h2>🤖 AI Document Generator</h2>
+          <span class="st-card-chevron">▾</span>
+        </div>
+        <div class="st-card-body">
         <!-- Step 1: Pick type -->
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-weight:500">① Document Type</div>
         <div class="doc-cat-label">Financial</div>
@@ -1259,6 +1334,7 @@ select.input option{background:#1c1c1e;}
             <input class="input" id="doc-output-subject" style="font-size:12px;padding:5px 9px">
           </div>
         </div>
+        </div>
       </div>
 
     </div>
@@ -1337,6 +1413,7 @@ function updateCBBadge(){
   const pending=_payments.filter(p=>p.status==='scheduled').length+_bills.filter(b=>b.status==='pending').length+_payrollRuns.filter(r=>r.status==='pending').length;
   const b=document.getElementById('cb-badge');
   if(b){b.textContent=pending||'';b.style.display=pending?'flex':'none';b.style.background='var(--amber)';b.style.color='#000';}
+  updateSTCBBadge();
 }
 
 function renderCBBills(body){
@@ -1357,6 +1434,11 @@ function renderCBBills(body){
   sorted.forEach(bill=>{
     const cat=_budgetCategories.find(c=>c._k===bill.categoryKey)||{icon:'📦',name:'Uncategorized'};
     const holdIcon=bill.status==='on_hold'?'⏸️ ':bill.status==='frozen'?'🧊 ':'';
+    const bst=bill.status||'pending';
+    const delBtnHtml=bst==='paid'?''
+      :bst==='approved'
+        ?'<button class="btn btn-sm" style="color:var(--red);font-size:11px;padding:2px 5px;flex-shrink:0;opacity:.4" disabled title="Cancel the linked payment first">🗑</button>'
+        :`<button class="btn btn-sm" style="color:var(--red);font-size:11px;padding:2px 5px;flex-shrink:0" onclick="event.stopPropagation();deleteCBBill('${bill._k}')" title="Delete invoice">🗑</button>`;
     const d=document.createElement('div');d.className='cb-bill-card';
     d.onclick=()=>openCBBillDetail(bill._k);
     d.innerHTML=`
@@ -1365,7 +1447,8 @@ function renderCBBills(body){
         <div style="font-size:11px;color:var(--text3);margin-top:2px">${bill.description||''} · ${cat.icon} ${cat.name} · ${bill.dueDateRef||'No due date'}</div>
       </div>
       <div style="font-family:var(--mono);font-size:14px;color:var(--red);flex-shrink:0;margin-right:10px">-${fmt(bill.amount||0)}</div>
-      <span class="cb-bill-status cb-status-${bill.status||'pending'}">${(bill.status||'pending').replace(/_/g,' ')}</span>
+      <span class="cb-bill-status cb-status-${bst}">${bst.replace(/_/g,' ')}</span>
+      ${delBtnHtml}
       <span style="color:var(--text3);font-size:11px;margin-left:6px">›</span>
     `;
     body.appendChild(d);
@@ -1419,6 +1502,21 @@ function openCBBillDetail(key){
     const dBtn=document.createElement('button');dBtn.className='btn btn-sm';dBtn.style.color='var(--red)';dBtn.textContent='⚑ Dispute';
     dBtn.onclick=()=>openDisputeCBBill(key);actionBar.appendChild(dBtn);
   }
+  if(_stUnlocked&&status!=='paid'){
+    const asBtn=document.createElement('button');asBtn.className='btn btn-sm';asBtn.style.color='var(--green)';asBtn.textContent='⚡ Approve & Schedule';
+    asBtn.onclick=()=>stApproveAndScheduleBill(key);actionBar.appendChild(asBtn);
+    const apBtn=document.createElement('button');apBtn.className='btn btn-primary btn-sm';apBtn.textContent='⚡ Approve & Post';
+    apBtn.onclick=()=>stApproveAndPostBill(key);actionBar.appendChild(apBtn);
+  }
+  if(status!=='paid'){
+    const delBtn=document.createElement('button');delBtn.className='btn btn-sm';delBtn.style.color='var(--red)';delBtn.textContent='🗑 Delete';
+    if(status==='approved'){
+      delBtn.disabled=true;delBtn.title='Cancel the linked payment first';delBtn.style.opacity='0.4';
+    } else {
+      delBtn.onclick=()=>deleteCBBill(key);
+    }
+    actionBar.appendChild(delBtn);
+  }
   content.appendChild(actionBar);
   const box=document.getElementById('modal-box');if(!box)return;
   box.innerHTML='<h2 style="margin-bottom:14px">🧾 '+(bill.vendorName||'Bill Detail')+'</h2>';
@@ -1429,6 +1527,14 @@ function openCBBillDetail(key){
 function approveCBBill(key){
   dbSet(divPath('bills/'+key+'/status'),'approved');
   closeModal();showToast('Bill approved');
+}
+
+function deleteCBBill(billKey){
+  const bill=_bills.find(b=>b._k===billKey);if(!bill)return;
+  if(bill.status==='paid')return;
+  if(!confirm('Delete invoice '+(bill.invoiceNumber||'#')+' from '+(bill.vendorName||'vendor')+'? This cannot be undone.'))return;
+  dbDel(divPath('bills/'+billKey));
+  closeModal();showToast('Invoice deleted');
 }
 
 function openDisputeCBBill(key){
@@ -1488,14 +1594,20 @@ function renderCBPayments(body){
     body.appendChild(em);return;
   }
   const table=document.createElement('table');table.className='bgt-table';
-  table.innerHTML='<thead><tr><th class="bgt-th">Payee</th><th class="bgt-th">Method</th><th class="bgt-th">Account</th><th class="bgt-th">Scheduled</th><th class="bgt-th right">Amount</th><th class="bgt-th center">Status</th><th class="bgt-th" style="width:24px"></th></tr></thead>';
+  table.innerHTML='<thead><tr><th class="bgt-th">Payee</th><th class="bgt-th">Method</th><th class="bgt-th">Account</th><th class="bgt-th">Scheduled</th><th class="bgt-th right">Amount</th><th class="bgt-th center">Status</th><th class="bgt-th" style="width:24px"></th><th class="bgt-th" style="width:50px"></th></tr></thead>';
   const tbody=document.createElement('tbody');
   sorted.forEach(p=>{
     const acct=_accounts.find(a=>a._k===p.accountId);
     const holdIcon=p.status==='on_hold'?'⏸️ ':p.status==='frozen'?'🧊 ':'';
+    let revCell='<td class="bgt-td"></td>';
+    if(p.status==='reversed'){
+      revCell='<td class="bgt-td"><span class="tx-rev-badge">🔄 REV</span></td>';
+    } else if(_stUnlocked&&p.status==='completed'&&!p.reversalOf){
+      revCell='<td class="bgt-td"><button class="btn btn-sm tx-rev-btn" onclick="event.stopPropagation();stReversePayment(\''+p._k+'\')">🔄</button></td>';
+    }
     const tr=document.createElement('tr');tr.className='bgt-entry-tr';tr.style.cursor='pointer';
     tr.onclick=()=>openCBPaymentDetail(p._k);
-    tr.innerHTML='<td class="bgt-td" style="font-weight:500">'+holdIcon+(p.vendorName||p.payTo||'—')+'</td><td class="bgt-td" style="color:var(--text2)">'+(p.method||'—')+'</td><td class="bgt-td" style="color:var(--text3)">'+(acct?acct.name:'—')+'</td><td class="bgt-td" style="color:var(--text3)">'+(p.scheduledDateRef||'—')+'</td><td class="bgt-td right" style="font-family:var(--mono);color:var(--red)">-'+fmt(p.amount||0)+'</td><td class="bgt-td center"><span class="cb-bill-status cb-status-'+(p.status||'scheduled')+'">'+(p.status||'scheduled').replace(/_/g,' ')+'</span></td><td class="bgt-td" style="color:var(--text3)">›</td>';
+    tr.innerHTML='<td class="bgt-td" style="font-weight:500">'+holdIcon+(p.vendorName||p.payTo||'—')+'</td><td class="bgt-td" style="color:var(--text2)">'+(p.method||'—')+'</td><td class="bgt-td" style="color:var(--text3)">'+(acct?acct.name:'—')+'</td><td class="bgt-td" style="color:var(--text3)">'+(p.scheduledDateRef||'—')+'</td><td class="bgt-td right" style="font-family:var(--mono);color:var(--red)">-'+fmt(p.amount||0)+'</td><td class="bgt-td center"><span class="cb-bill-status cb-status-'+(p.status||'scheduled')+'">'+(p.status||'scheduled').replace(/_/g,' ')+'</span></td><td class="bgt-td" style="color:var(--text3)">›</td>'+revCell;
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);body.appendChild(table);
@@ -1784,6 +1896,17 @@ function renderSTBillsPending(){
     resBtn.onclick=()=>stResolveBillDispute(bKey);
     d.appendChild(resBtn);el.appendChild(d);
   });
+  // Pending bills — ST one-click actions
+  const pendingBills=_bills.filter(b=>b.status==='pending');
+  pendingBills.forEach(b=>{
+    const bKey=b._k;
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:0.5px solid var(--border2)';
+    d.innerHTML='<div style="flex:1;font-size:11px">🧾 <strong>'+b.vendorName+'</strong> — '+fmt(b.amount||0)+'</div>';
+    const apBtn=document.createElement('button');apBtn.className='btn btn-primary btn-sm';apBtn.style.fontSize='9px';apBtn.textContent='⚡ Approve & Post';
+    apBtn.onclick=()=>stApproveAndPostBill(bKey);
+    d.appendChild(apBtn);el.appendChild(d);
+  });
   // Pending intercompany transfers
   const pendingTransfers=_transfers.filter(t=>t.status==='pending');
   pendingTransfers.forEach(t=>{
@@ -1826,6 +1949,97 @@ function stApprovePayment(paymentKey){
   if(p.billKey)dbSet(divPath('bills/'+p.billKey+'/status'),'paid');
   dbPush('chat_msgs',{contact:'System',sender:'system',text:'✅ Payment of '+fmt(p.amount)+' to '+p.vendorName+' has been processed.',time:nowTime(),type:'system',_ts:Date.now()});
   showToast('Payment approved and posted');
+}
+
+function stApproveAndScheduleBill(billKey){
+  const bill=_bills.find(b=>b._k===billKey);if(!bill)return;
+  if(bill.status==='paid')return;
+  const acctId=bill.accountId||(_accounts[0]&&_accounts[0]._k)||'';
+  dbSet(divPath('bills/'+billKey+'/status'),'approved');
+  dbPush(divPath('payments'),{vendorName:bill.vendorName||'',amount:bill.amount||0,method:'Check',accountId:acctId,categoryKey:bill.categoryKey||'',billKey:billKey,status:'scheduled',scheduledRef:nowTime(),_ts:Date.now()});
+  dbPush('chat_msgs',{contact:'System',sender:'system',text:'📋 A payment of '+fmt(bill.amount||0)+' to '+(bill.vendorName||'vendor')+' has been scheduled.',time:nowTime(),type:'system',_ts:Date.now()});
+  closeModal();showToast('Bill approved — payment scheduled');
+}
+
+function stApproveAndPostBill(billKey){
+  const bill=_bills.find(b=>b._k===billKey);if(!bill)return;
+  if(bill.status==='paid')return;
+  const acctId=bill.accountId||(_accounts[0]&&_accounts[0]._k)||'';
+  dbPush(divPath('transactions'),{label:'Payment — '+(bill.vendorName||''),type:'expense',amount:bill.amount||0,date:nowTime(),accountId:acctId,budgetCategoryKey:bill.categoryKey||'',source:'Bill Payment',billRef:billKey,_ts:Date.now()});
+  if(bill.isCapEx){
+    dbPush(divPath('capex_items'),{name:bill.capexAssetName||bill.description||bill.vendorName||'',category:bill.capexAssetCat||'Other',cost:bill.amount||0,vendor:bill.vendorName||'',dateRef:nowTime(),notes:bill.notes||'',status:'active',_ts:Date.now()});
+  } else if(bill.categoryKey&&_activePeriodKey){
+    dbPush(divPath('budget_entries/'+_activePeriodKey),{categoryKey:bill.categoryKey,description:'Payment — '+(bill.vendorName||''),amount:bill.amount||0,dateRef:nowTime(),submittedBy:'st',status:'approved',_ts:Date.now()});
+    checkBgtThreshold(bill.categoryKey);
+  }
+  dbPush(divPath('payments'),{vendorName:bill.vendorName||'',amount:bill.amount||0,method:'Direct',accountId:acctId,categoryKey:bill.categoryKey||'',billKey:billKey,status:'completed',postedAt:nowTime(),_ts:Date.now()});
+  dbSet(divPath('bills/'+billKey+'/status'),'paid');
+  dbPush('chat_msgs',{contact:'System',sender:'system',text:'✅ Payment of '+fmt(bill.amount||0)+' to '+(bill.vendorName||'vendor')+' has been processed.',time:nowTime(),type:'system',_ts:Date.now()});
+  closeModal();showToast('Bill approved and posted');
+}
+
+function stReverseTransaction(txKey){
+  const t=_txs.find(x=>x._k===txKey);if(!t)return;
+  if(t.status==='reversed'||t.reversalOf||t.source==='Payroll'||t.source==='Intercompany')return;
+  showModal(`
+    <h2>Reverse Transaction?</h2>
+    <p style="font-size:13px;color:var(--text2);margin:12px 0">This will post a counter-transaction. The original remains in the ledger marked REVERSED. Continue?</p>
+    <p style="font-size:12px;color:var(--text3)"><strong>${t.type==='income'?'+':'-'}${fmt(t.amount||0)}</strong> — ${t.label||'—'}</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="_confirmReverseTransaction('${txKey}')">Reverse</button>
+    </div>
+  `);
+}
+
+function _confirmReverseTransaction(txKey){
+  const t=_txs.find(x=>x._k===txKey);if(!t)return;
+  closeModal();
+  dbSet(divPath('transactions/'+txKey+'/status'),'reversed');
+  dbSet(divPath('transactions/'+txKey+'/reversedAt'),nowTime());
+  const counterRef=dbRef(divPath('transactions')).push();
+  counterRef.set({label:'REVERSAL — '+(t.label||''),type:t.type==='income'?'expense':'income',amount:t.amount||0,date:nowTime(),accountId:t.accountId||'',budgetCategoryKey:t.budgetCategoryKey||'',source:t.source||'',reversalOf:txKey,_ts:Date.now()});
+  dbSet(divPath('transactions/'+txKey+'/reversalRef'),counterRef.key);
+  if(t.budgetCategoryKey&&_activePeriodKey){
+    dbPush(divPath('budget_entries/'+_activePeriodKey),{categoryKey:t.budgetCategoryKey,description:'REVERSAL — '+(t.label||''),amount:-(t.amount||0),isReversal:true,reversalOf:txKey,dateRef:nowTime(),submittedBy:'st',status:'approved',_ts:Date.now()});
+    checkBgtThreshold(t.budgetCategoryKey);
+  }
+  showToast('Reversal posted');
+}
+
+function stReversePayment(paymentKey){
+  const p=_payments.find(x=>x._k===paymentKey);if(!p)return;
+  if(p.status==='reversed'||p.reversalOf)return;
+  showModal(`
+    <h2>Reverse Payment?</h2>
+    <p style="font-size:13px;color:var(--text2);margin:12px 0">This will post a counter-transaction. The original remains in the ledger marked REVERSED. Continue?</p>
+    <p style="font-size:12px;color:var(--text3)"><strong>-${fmt(p.amount||0)}</strong> — ${p.vendorName||p.payTo||'—'}</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="_confirmReversePayment('${paymentKey}')">Reverse</button>
+    </div>
+  `);
+}
+
+function _confirmReversePayment(paymentKey){
+  const p=_payments.find(x=>x._k===paymentKey);if(!p)return;
+  closeModal();
+  dbSet(divPath('payments/'+paymentKey+'/status'),'reversed');
+  dbSet(divPath('payments/'+paymentKey+'/reversedAt'),nowTime());
+  const linkedTx=_txs.find(t=>t.billRef===p.billKey&&t.source==='Bill Payment'&&t.status!=='reversed'&&!t.reversalOf);
+  if(linkedTx){
+    dbSet(divPath('transactions/'+linkedTx._k+'/status'),'reversed');
+    dbSet(divPath('transactions/'+linkedTx._k+'/reversedAt'),nowTime());
+    const counterRef=dbRef(divPath('transactions')).push();
+    counterRef.set({label:'REVERSAL — '+(linkedTx.label||''),type:'income',amount:p.amount||0,date:nowTime(),accountId:p.accountId||linkedTx.accountId||'',budgetCategoryKey:p.categoryKey||'',source:'Bill Payment',reversalOf:linkedTx._k,_ts:Date.now()});
+    dbSet(divPath('transactions/'+linkedTx._k+'/reversalRef'),counterRef.key);
+    if(p.categoryKey&&_activePeriodKey){
+      dbPush(divPath('budget_entries/'+_activePeriodKey),{categoryKey:p.categoryKey,description:'REVERSAL — Payment '+(p.vendorName||''),amount:-(p.amount||0),isReversal:true,reversalOf:linkedTx._k,dateRef:nowTime(),submittedBy:'st',status:'approved',_ts:Date.now()});
+      checkBgtThreshold(p.categoryKey);
+    }
+  }
+  if(p.billKey)dbSet(divPath('bills/'+p.billKey+'/status'),'approved');
+  showToast('Reversal posted');
 }
 
 function stDenyPayment(paymentKey){
@@ -2241,13 +2455,18 @@ function renderCBPayrollRoster(body){
   const toolbar=document.createElement('div');toolbar.className='bgt-add-bar';
   toolbar.innerHTML='<span style="font-size:11px;color:var(--text2);font-weight:500">Staff & Pay Rates</span>';
   body.appendChild(toolbar);
+  const divName=(_divisions.find(d=>d._k===_activeDivision)||{name:_activeDivision}).name;
+  const divStaff=_staff.filter(s=>s.division===_activeDivision);
   if(!_staff.length){
     const em=document.createElement('div');em.style.cssText='padding:30px;text-align:center;color:var(--text3);font-size:13px';em.innerHTML='<div style="font-size:32px;margin-bottom:12px">👥</div>No staff yet';body.appendChild(em);return;
+  }
+  if(!divStaff.length){
+    const em=document.createElement('div');em.style.cssText='padding:30px;text-align:center;color:var(--text3);font-size:13px';em.innerHTML='<div style="font-size:32px;margin-bottom:12px">👥</div>No staff assigned to '+divName+'<br><span style="font-size:11px">Assign staff in the Staff app</span>';body.appendChild(em);return;
   }
   const table=document.createElement('table');table.className='bgt-table';
   table.innerHTML='<thead><tr><th class="bgt-th">Staff Member</th><th class="bgt-th">Role</th><th class="bgt-th">Pay Type</th><th class="bgt-th right">Rate</th><th class="bgt-th right">YTD Earnings</th><th class="bgt-th center">Status</th></tr></thead>';
   const tbody=document.createElement('tbody');
-  _staff.forEach(s=>{
+  divStaff.forEach(s=>{
     const rates=_staffRates[s._k]||{};
     const ytd=_payrollRuns.reduce((sum,run)=>{
       const detail=(run.staffBreakdown||{})[s._k]||0;
@@ -2306,6 +2525,13 @@ function renderCBRunPayroll(body){
     em.innerHTML='<div style="font-size:24px;margin-bottom:8px">\u{1F465}</div>Loading staff\u2026<br><span style="font-size:11px">Open the Staff app once to sync, then click Refresh Rates</span>';
     body.appendChild(em);return;
   }
+  const divNameR=(_divisions.find(d=>d._k===_activeDivision)||{name:_activeDivision}).name;
+  const divStaffR=_staff.filter(s=>s.division===_activeDivision);
+  if(!divStaffR.length){
+    const em=document.createElement('div');em.style.cssText='padding:30px;text-align:center;color:var(--text3);font-size:13px';
+    em.innerHTML='<div style="font-size:24px;margin-bottom:8px">\u{1F465}</div>No staff assigned to '+divNameR+'<br><span style="font-size:11px">Assign staff in the Staff app</span>';
+    body.appendChild(em);return;
+  }
 
   // Check-all header
   const checkBar=document.createElement('div');checkBar.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:0.5px solid var(--border2);background:rgba(255,255,255,0.02)';
@@ -2325,7 +2551,7 @@ function renderCBRunPayroll(body){
   table.appendChild(thead);
   const tbody=document.createElement('tbody');
 
-  _staff.forEach(s=>{
+  divStaffR.forEach(s=>{
     const rates=_staffRates[s._k]||{};
     const gross=rates.rate||0;
     const isPayable=s.status!=='Terminated';
@@ -2610,20 +2836,26 @@ function renderSTPayRates(){
     setTimeout(()=>{if(_staff.length)renderSTPayRates();},2000);
     return;
   }
+  const divNameP=(_divisions.find(d=>d._k===_activeDivision)||{name:_activeDivision}).name;
+  const divStaffP=_staff.filter(s=>s.division===_activeDivision);
+  if(!divStaffP.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3)">No staff assigned to '+divNameP+' — assign staff in the Staff app</div>';
+    return;
+  }
   const note=document.createElement('div');
   note.style.cssText='font-size:10px;color:var(--text3);margin-bottom:6px;padding-bottom:5px;border-bottom:0.5px solid var(--border2)';
   note.textContent='Rate = amount paid per payroll run. Changes auto-saved on blur.';
   el.appendChild(note);
 
   // Seed _pendingRates from current Firebase data
-  _staff.forEach(s=>{
+  divStaffP.forEach(s=>{
     if(!_pendingRates[s._k]){
       const r=_staffRates[s._k]||{};
       _pendingRates[s._k]={payType:r.payType||'Salary',rate:r.rate||0};
     }
   });
 
-  _staff.forEach(s=>{
+  divStaffP.forEach(s=>{
     const cur=_pendingRates[s._k]||{payType:'Salary',rate:0};
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--border2)';
@@ -3350,6 +3582,8 @@ function stCreatePeriod(prevAllocStr){
   const name=gv('np-name').trim();if(!name){showToast('Enter a period name');return;}
   const ref=gv('np-ref').trim();
   const copyAlloc=gv('np-alloc')==='copy';
+  const prevPeriodKey=_activePeriodKey;
+  const prevPeriodName=prevPeriodKey?(_budgetPeriods.find(p=>p._k===prevPeriodKey)||{name:'previous period'}).name:'previous period';
   dbPush(divPath('budget_periods'),{name,startRef:ref,status:'active',_ts:Date.now()}).then(ref2=>{
     const newKey=ref2.key;
     dbSet(divPath('budget_config/activePeriod'),newKey);
@@ -3357,10 +3591,10 @@ function stCreatePeriod(prevAllocStr){
       try{const prev=JSON.parse(prevAllocStr);dbSet(divPath('budget_allocations/'+newKey),prev);}catch(e){}
     }
     // Close previous active period
-    if(_activePeriodKey&&_activePeriodKey!==newKey){
-      dbSet(divPath('budget_periods/'+_activePeriodKey+'/status'),'closed');
+    if(prevPeriodKey&&prevPeriodKey!==newKey){
+      dbSet(divPath('budget_periods/'+prevPeriodKey+'/status'),'closed');
     }
-    closeModal();showToast('New period created: '+name);
+    closeModal();showToast('New period created: '+name+(copyAlloc?' · Allocations copied from '+prevPeriodName:''));
   });
 }
 
@@ -4443,6 +4677,8 @@ function renderStaff(){
 }
 function openStaffModal(idx,s){
   s=s||{};
+  const divList=_divisions.filter(d=>!d.isParent);
+  const divOpts=(divList.length?divList:[{_k:'la',name:'LA'}]).map(d=>`<option value="${d._k}"${(s.division||'la')===d._k?' selected':''}>${d.name}</option>`).join('');
   showModal(`
     <h2>${idx<0?'Add Employee':'Edit Employee'}</h2>
     <div class="form-row"><label>Name</label><input class="input" id="m-name" value="${s.name||''}"></div>
@@ -4456,6 +4692,9 @@ function openStaffModal(idx,s){
         </select>
       </div>
     </div>
+    <div class="form-row"><label>Division</label>
+      <select class="input" id="m-div">${divOpts}</select>
+    </div>
     <div class="modal-actions">
       ${s._k?`<button class="btn btn-danger" onclick="if(confirm('Delete?'))dbDel('staff/${s._k}');closeModal()">Delete</button>`:''}
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -4464,7 +4703,7 @@ function openStaffModal(idx,s){
   `);
 }
 function saveStaff(key){
-  const s={name:gv('m-name'),role:gv('m-role'),notes:gv('m-notes'),rating:parseInt(gv('m-rat'))||3,status:gv('m-stat'),_ts:Date.now()};
+  const s={name:gv('m-name'),role:gv('m-role'),notes:gv('m-notes'),rating:parseInt(gv('m-rat'))||3,status:gv('m-stat'),division:gv('m-div')||'la',_ts:Date.now()};
   if(key)dbSet('staff/'+key,s);else dbPush('staff',s);
   closeModal();showToast('Saved');
 }
@@ -5047,9 +5286,190 @@ function checkPass(){
       renderSTCalendar();renderSTCalView();
       bindDivisionListeners();
       renderSTBillsPending();renderSTVendorDropdowns();renderSTPayrollPanel();
+      renderSTBudgetPanel();renderSTCapExList();renderSTDivisionList();
+      renderSTPendingPaymentsList();renderSTPendingTransfersList();
+      initCollapsibleCards();
+      initSTCBTabs();
+      dbGet('carpebooks_config/staffDivisionMigrated',migrated=>{
+        if(!migrated){
+          dbGet('staff',snap=>{
+            const obj=snap||{};
+            Object.entries(obj).forEach(([k,s])=>{if(s&&!s.division)dbSet('staff/'+k+'/division','la');});
+            dbSet('carpebooks_config/staffDivisionMigrated',true);
+          });
+        }
+      });
     } else {
       document.getElementById('st-pass-err').style.display='block';
     }
+  });
+}
+
+// ── ST PANEL COLLAPSIBLE CARDS ─────────────────────
+function toggleSTCard(id){
+  const card=document.querySelector('[data-card-id="'+id+'"]');
+  if(!card)return;
+  const collapsed=card.classList.toggle('collapsed');
+  localStorage.setItem('st_panel_'+id+'_collapsed',collapsed);
+}
+
+function initCollapsibleCards(){
+  const defaults={
+    'st-monitor':false,
+    'revenue-gen':true,
+    'communications':true,
+    'manual-bank':true,
+    'inventory':true,
+    'chronicle':true,
+    'calendar-mgmt':true,
+    'doc-generator':true,
+    'carpebooks':true,
+    'config':true
+  };
+  Object.entries(defaults).forEach(([id,defaultCollapsed])=>{
+    const stored=localStorage.getItem('st_panel_'+id+'_collapsed');
+    const collapsed=stored!==null?stored==='true':defaultCollapsed;
+    const card=document.querySelector('[data-card-id="'+id+'"]');
+    if(!card)return;
+    card.classList.toggle('collapsed',collapsed);
+  });
+}
+
+// ── CARPEBOOKS ST CARD TABS ────────────────────────
+function switchSTCBTab(tab){
+  document.querySelectorAll('#st-cb-tabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  document.querySelectorAll('#st-cb-overview,#st-cb-bills,#st-cb-payments,#st-cb-payroll,#st-cb-budget,#st-cb-assets,#st-cb-divisions').forEach(c=>{
+    c.classList.toggle('active',c.id==='st-cb-'+tab);
+  });
+  localStorage.setItem('st_cb_tab',tab);
+}
+
+function initSTCBTabs(){
+  const saved=localStorage.getItem('st_cb_tab')||'overview';
+  switchSTCBTab(saved);
+}
+
+function updateSTCBBadge(){
+  const pending=(_payments||[]).filter(p=>p.status==='scheduled').length
+    +(_bills||[]).filter(b=>b.status==='pending').length
+    +(_payrollRuns||[]).filter(r=>r.status==='pending').length;
+  const badge=document.getElementById('st-cb-pending-badge');
+  if(badge){badge.textContent=pending?' · '+pending+' pending':'';badge.style.display=pending?'':'none';}
+}
+
+// ── PHASE 2: CARPEBOOKS ST CARD TAB RENDERS ────────
+
+function renderSTBudgetPanel(){
+  const nameEl=document.getElementById('st-bgt-active-name');
+  if(nameEl){
+    if(_activePeriodKey){
+      const period=_budgetPeriods.find(p=>p._k===_activePeriodKey);
+      nameEl.textContent=period?(period.name+(period.startRef?' ('+period.startRef+')':'')):'Active period';
+    } else {
+      nameEl.textContent='No active period';
+    }
+  }
+  const thr=document.getElementById('bgt-threshold');
+  if(thr)thr.value=_budgetConfig.globalThreshold||80;
+  const tbody=document.getElementById('st-bgt-alloc-body');
+  if(tbody){
+    tbody.innerHTML='';
+    if(!_stBgtCategories.length){
+      tbody.innerHTML='<tr><td colspan="3" style="padding:8px 10px;font-size:11px;color:var(--text3)">No categories yet</td></tr>';
+    } else {
+      const alloc=_activePeriodKey?(_budgetAlloc[_activePeriodKey]||{}):{};
+      _stBgtCategories.forEach(cat=>{
+        const val=alloc[cat._k]||0;
+        const tr=document.createElement('tr');
+        const catKey=cat._k;
+        tr.innerHTML=
+          '<td style="padding:6px 10px;font-size:11px;color:var(--text2)">'+(cat.icon||'')+' '+cat.name+'</td>'+
+          '<td style="padding:4px 10px;text-align:right">'+
+            '<input class="input" type="number" id="alloc-'+catKey+'" value="'+val+'" min="0"'+
+            ' style="width:90px;padding:3px 6px;font-size:11px;text-align:right"'+
+            ' onchange="stSaveOneAllocation(\''+catKey+'\',this.value)">'+
+          '</td>'+
+          '<td style="padding:4px 8px;text-align:right">'+
+            '<button class="btn btn-sm" style="font-size:9px;padding:1px 6px" onclick="stEditCategoryModal(\''+catKey+'\')">✏️</button>'+
+          '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+  }
+  renderSTBudgetPending();
+  renderSTCatDropdowns();
+  renderSTBankTxDropdown();
+}
+
+function stRunPayrollDirect(){
+  const dateRef=gv('st-payroll-date').trim()||nowTime();
+  const accountId=gv('st-payroll-acct');
+  if(!accountId){showToast('Select an account');return;}
+  const divStaffD=_staff.filter(s=>s.division===_activeDivision);
+  if(!divStaffD.length){showToast('No staff loaded');return;}
+  const breakdown={};
+  let total=0;
+  divStaffD.forEach(s=>{
+    const r=_staffRates[s._k]||{};
+    const rate=parseFloat(r.rate)||0;
+    if(rate>0){
+      breakdown[s._k]={name:s.name||s._k,payType:r.payType||'Salary',rate,gross:rate};
+      total+=rate;
+    }
+  });
+  if(!total){showToast('No staff rates set');return;}
+  if(!confirm('Post payroll run of '+fmt(total)+' for '+Object.keys(breakdown).length+' staff?'))return;
+  dbPush(divPath('payroll_runs'),{
+    dateRef,accountId,totalGross:total,staffBreakdown:breakdown,
+    status:'completed',submittedBy:'st',postedAt:nowTime(),_ts:Date.now()
+  });
+  dbPush(divPath('transactions'),{
+    label:'Payroll — '+dateRef,type:'expense',amount:total,
+    date:dateRef,accountId,source:'Payroll',_ts:Date.now()
+  });
+  const dateEl=document.getElementById('st-payroll-date');
+  if(dateEl)dateEl.value='';
+  showToast('Payroll run posted — '+fmt(total));
+}
+
+function renderSTPendingPaymentsList(){
+  const el=document.getElementById('st-p-payments-list');if(!el)return;
+  const pending=_payments.filter(p=>p.status==='scheduled');
+  el.innerHTML='';
+  if(!pending.length){el.innerHTML='<div style="font-size:11px;color:var(--text3)">No pending payment approvals</div>';return;}
+  pending.forEach(p=>{
+    const key=p._k;
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:0.5px solid var(--border2)';
+    d.innerHTML='<div style="flex:1;font-size:11px"><strong>'+p.vendorName+'</strong> — '+fmt(p.amount)+' via '+(p.method||'payment')+'</div>';
+    const approveBtn=document.createElement('button');approveBtn.className='btn btn-sm';approveBtn.style.cssText='font-size:9px;color:var(--green)';approveBtn.textContent='✓ Pay';
+    approveBtn.onclick=()=>stApprovePayment(key);
+    const denyBtn=document.createElement('button');denyBtn.className='btn btn-sm';denyBtn.style.cssText='font-size:9px;color:var(--red)';denyBtn.textContent='✕';
+    denyBtn.onclick=()=>stDenyPayment(key);
+    const holdBtn=document.createElement('button');holdBtn.className='btn btn-sm';holdBtn.style.fontSize='9px';holdBtn.textContent='⏸️';
+    holdBtn.onclick=()=>stHoldPayment(key);
+    d.appendChild(approveBtn);d.appendChild(denyBtn);d.appendChild(holdBtn);
+    el.appendChild(d);
+  });
+}
+
+function renderSTPendingTransfersList(){
+  const el=document.getElementById('st-p-transfers-list');if(!el)return;
+  const pending=_transfers.filter(t=>t.status==='pending');
+  el.innerHTML='';
+  if(!pending.length){el.innerHTML='<div style="font-size:11px;color:var(--text3)">No pending transfers</div>';return;}
+  pending.forEach(t=>{
+    const tKey=t._k;
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:0.5px solid var(--border2)';
+    const fromDiv=_divisions.find(x=>x._k===t.fromDivision)||{name:t.fromDivision};
+    const toDiv=_divisions.find(x=>x._k===t.toDivision)||{name:t.toDivision};
+    d.innerHTML='<div style="flex:1;font-size:11px">↔️ <strong>'+fmt(t.amount)+'</strong> '+fromDiv.name+' → '+toDiv.name+(t.memo?' — '+t.memo:'')+'</div>';
+    const appBtn=document.createElement('button');appBtn.className='btn btn-sm';appBtn.style.cssText='font-size:9px;color:var(--green)';appBtn.textContent='✓ Approve';
+    appBtn.addEventListener('click',function(){stApproveTransfer(tKey);});
+    const dnyBtn=document.createElement('button');dnyBtn.className='btn btn-sm';dnyBtn.style.cssText='font-size:9px;color:var(--red)';dnyBtn.textContent='✕';
+    dnyBtn.addEventListener('click',function(){stDenyTransfer(tKey);});
+    d.appendChild(appBtn);d.appendChild(dnyBtn);el.appendChild(d);
   });
 }
 
@@ -5220,7 +5640,7 @@ function startApp(){
   dbListen('cb_divisions','carpebooks_config/divisions',v=>{
     _divisions=toArr(v);
     if(_wins['carpebooks'])renderCarpeBooks();
-    if(_stUnlocked)renderSTDivisionSelect();
+    if(_stUnlocked){renderSTDivisionSelect();renderSTDivisionList();}
   });
   bindDivisionListeners();
 }
@@ -5304,19 +5724,19 @@ function bindDivisionListeners(){
   dbListen('global_transfers','intercompany_transfers',v=>{
     _transfers=toArrD(v);
     if(_wins['carpebooks']&&(_cbTab==='payments'||_cbTab==='dashboard'))renderCBBody();
-    if(_stUnlocked)renderSTBillsPending();
+    if(_stUnlocked){renderSTBillsPending();renderSTPendingTransfersList();}
   });
   // Phase 2 listeners
   dbListen('div_bills',base+'bills',v=>{
     _bills=toArrD(v);
     if(_wins['carpebooks']&&_cbTab==='bills')renderCBBody();
     updateCBBadge();
-    if(_stUnlocked)renderSTBillsPending();
+    if(_stUnlocked){renderSTBillsPending();renderSTPendingPaymentsList();}
   });
   dbListen('div_payments',base+'payments',v=>{
     _payments=toArrD(v);
     if(_wins['carpebooks']&&_cbTab==='payments')renderCBBody();
-    if(_stUnlocked)renderSTBillsPending();
+    if(_stUnlocked){renderSTBillsPending();renderSTPendingPaymentsList();}
     updateCBBadge();
   });
   dbListen('div_vendors',base+'vendors',v=>{
@@ -5336,6 +5756,8 @@ function switchDivision(key){
   if(_stUnlocked){
     renderSTDivisionSelect();renderSTBankSelect();renderSTBankView();
     renderSTBillsPending();renderSTPayrollPanel();renderSTVendorDropdowns();
+    renderSTPendingPaymentsList();renderSTPendingTransfersList();
+    renderSTBudgetPanel();renderSTCapExList();renderSTDivisionList();
   }
 }
 
@@ -5562,12 +5984,24 @@ function renderCBLedger(){
     <th class="bgt-th">Date</th>
     <th class="bgt-th right">Amount</th>
     <th class="bgt-th right">Running Balance</th>
+    <th class="bgt-th" style="width:40px"></th>
   </tr></thead>`;
   const tbody=document.createElement('tbody');
   filtered.forEach(t=>{
     const cat=t.budgetCategoryKey?_stBgtCategories.find(c=>c._k===t.budgetCategoryKey):null;
     const source=cat?(cat.icon+' '+cat.name):'—';
-    const tr=document.createElement('tr');tr.className='bgt-entry-tr';
+    const isReversed=t.status==='reversed';
+    const isCounter=!isReversed&&!!t.reversalOf;
+    const tr=document.createElement('tr');
+    tr.className='bgt-entry-tr'+(isReversed?' tx-reversed-row':'');
+    let revCell='<td class="bgt-td"></td>';
+    if(isReversed){
+      revCell='<td class="bgt-td"><span class="tx-rev-badge">🔄 REV</span></td>';
+    } else if(isCounter){
+      revCell='<td class="bgt-td"><span class="tx-rev-counter-badge">🔄 REV</span></td>';
+    } else if(_stUnlocked&&t.source!=='Payroll'&&t.source!=='Intercompany'){
+      revCell='<td class="bgt-td"><button class="btn btn-sm tx-rev-btn" onclick="stReverseTransaction(\''+t._k+'\')">🔄</button></td>';
+    }
     tr.innerHTML=`
       <td class="bgt-td">${t.type==='income'?'🟢':'🔴'}</td>
       <td class="bgt-td" style="font-weight:500">${t.label||'—'}</td>
@@ -5575,6 +6009,7 @@ function renderCBLedger(){
       <td class="bgt-td" style="color:var(--text3)">${t.date||'—'}</td>
       <td class="bgt-td right" style="font-family:var(--mono);color:${t.type==='income'?'var(--green)':'var(--red)'}">${t.type==='income'?'+':'-'}${fmt(t.amount||0)}</td>
       <td class="bgt-td right" style="font-family:var(--mono);color:${t._running>=0?'var(--text)':'var(--red)'}">${t._running>=0?fmt(t._running):'-'+fmt(Math.abs(t._running))}</td>
+      ${revCell}
     `;
     tbody.appendChild(tr);
   });
@@ -6264,27 +6699,32 @@ function renderWeekView(container){
   container.style.overflowY='hidden';
   container.style.display='flex';
   container.style.flexDirection='column';
+  const weekOffset=_calOffset;
   let html='<div class="cal-week" style="flex:1;overflow:hidden">';
   DAYS.forEach((day,i)=>{
-    html+=`<div class="cal-day-col" id="cal-col-${i}" ondragover="calDragOver(event,${i})" ondragleave="calDragLeave(event)" ondrop="calDrop(event,${i},'week',${_calOffset})">
+    html+=`<div class="cal-day-col" id="cal-col-${i}" ondragover="calDragOver(event,${i})" ondragleave="calDragLeave(event)" ondrop="calDrop(event,${i},'week',${weekOffset})">
       <div class="cal-day-header">${day}</div>
-      <div class="cal-day-body" id="cal-day-${i}"></div>
+      <div class="cal-day-content">
+        <div class="cal-day-bg" id="cal-bg-${i}"></div>
+        <div class="cal-day-events" id="cal-events-${i}"></div>
+      </div>
     </div>`;
   });
   html+='</div>';
   container.innerHTML=html;
   DAYS.forEach((_,i)=>{
-    const body=document.getElementById('cal-day-'+i);if(!body)return;
-    const direct=getEventsForSlot(i,_calOffset);
-    const recurring=getRecurringForDay(i,_calOffset);
-    // Merge and deduplicate
+    const eventsEl=document.getElementById('cal-events-'+i);if(!eventsEl)return;
+    const direct=getEventsForSlot(i,weekOffset);
+    const recurring=getRecurringForDay(i,weekOffset);
     const seen=new Set(direct.map(e=>e._k));
     const all=[...direct,...recurring.filter(e=>!seen.has(e._k))];
     all.sort((a,b)=>parseTimeSort(a.time)-parseTimeSort(b.time));
     all.forEach(e=>{
       const card=makeEventCard(e,!e._recurringInstance);
-      body.appendChild(card);
+      eventsEl.appendChild(card);
     });
+    const bgEl=document.getElementById('cal-bg-'+i);
+    if(bgEl)bgEl.onclick=ev=>calBgClick(ev,i,weekOffset);
   });
 }
 
@@ -6307,8 +6747,11 @@ function renderMonthView(container){
       }).join('');
       const more=evts.length>3?`<div style="font-size:9px;color:var(--text3)">+${evts.length-3} more</div>`:'';
       html+=`<div class="cal-month-cell" ondragover="calDragOver(event,${day})" ondrop="calDrop(event,${day},'month',${weekAbs})">
-        <div style="font-size:9px;color:var(--text3);margin-bottom:3px">W${week+1}</div>
-        ${pills}${more}
+        <div class="cal-month-bg" style="position:absolute;inset:0;z-index:1;cursor:crosshair" onclick="calMonthBgClick(event,${day},${weekAbs})"></div>
+        <div class="cal-month-events" style="position:relative;z-index:2;pointer-events:none">
+          <div style="font-size:9px;color:var(--text3);margin-bottom:3px">W${week+1}</div>
+          ${pills}${more}
+        </div>
       </div>`;
     }
   }
@@ -6443,6 +6886,117 @@ function countAttendees(e){
   return s;
 }
 
+// ── CALENDAR CLICK-TO-ADD ──────────────────────────
+
+function calBgClick(ev,dayIndex,weekOffset){
+  ev.stopPropagation();
+  const dateRef=DAYS[dayIndex]+', Week '+(weekOffset+1);
+  if(_stUnlocked){openCalClickPopover(ev.clientX,ev.clientY,dayIndex,weekOffset,dateRef);}
+  else{openCalRequestModal(dateRef,dayIndex,weekOffset);}
+}
+
+function calMonthBgClick(ev,day,weekAbs){
+  ev.stopPropagation();
+  const monthIdx=((_calOffset%12)+12)%12;
+  const weekInMonth=(weekAbs%4)+1;
+  const dateRef=DAYS[day]+', Week '+weekInMonth+' of Month '+(monthIdx+1);
+  if(_stUnlocked){openCalClickPopover(ev.clientX,ev.clientY,day,weekAbs,dateRef);}
+  else{openCalRequestModal(dateRef,day,weekAbs);}
+}
+
+function _calPopoverOutsideClick(ev){
+  const pop=document.getElementById('cal-click-popover');
+  if(pop&&!pop.contains(ev.target))closeCalClickPopover();
+}
+
+function closeCalClickPopover(){
+  document.getElementById('cal-click-popover')?.remove();
+  document.removeEventListener('mousedown',_calPopoverOutsideClick);
+}
+
+function openCalClickPopover(x,y,dayIndex,weekOffset,dateRef){
+  closeCalClickPopover();
+  const EVT_TYPES=['Meeting','Social','Conflict','Legal','Financial','Personal','Other'];
+  const pop=document.createElement('div');
+  pop.id='cal-click-popover';
+  pop.className='cal-click-popover';
+  pop.innerHTML=`
+    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px">+ Add Event</div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:8px">${dateRef}</div>
+    <input class="input" id="ccp-title" placeholder="Event title" style="width:100%;margin-bottom:6px;font-size:12px">
+    <input class="input" id="ccp-time" placeholder="Time (e.g. 19:00)" style="width:100%;margin-bottom:6px;font-size:12px">
+    <select class="input" id="ccp-type" style="width:100%;margin-bottom:10px;font-size:12px">
+      ${EVT_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}
+    </select>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitCalClickAdd(${dayIndex},${weekOffset},'${dateRef.replace(/'/g,"\\'")}')">Save</button>
+      <button class="btn btn-sm" onclick="closeCalClickPopover()">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(pop);
+  // Position with bottom clamp
+  const popH=pop.offsetHeight||160;
+  let left=x+10;
+  let top=y+10;
+  if(left+234>window.innerWidth)left=x-244;
+  if(top+popH>window.innerHeight)top=y-popH-10;
+  pop.style.left=left+'px';
+  pop.style.top=top+'px';
+  setTimeout(()=>document.addEventListener('mousedown',_calPopoverOutsideClick),0);
+  pop.querySelector('#ccp-title')?.focus();
+}
+
+function submitCalClickAdd(dayIndex,weekOffset,dateRef){
+  const title=(document.getElementById('ccp-title')?.value||'').trim();
+  if(!title){document.getElementById('ccp-title')?.focus();return;}
+  const time=(document.getElementById('ccp-time')?.value||'').trim()||'TBD';
+  const type=document.getElementById('ccp-type')?.value||'Meeting';
+  const evt={
+    title,type,time,
+    day:dayIndex,week:weekOffset,month:weekOffset>>2,
+    order:0,timeRef:dateRef,
+    location:'',attendeesInternal:'',attendeesExternal:'',
+    contactLinked:'',description:'',
+    priority:'normal',eyesOnlyReveal:'never',eyesOnlyRevealed:true,
+    titleRevealed:true,status:'upcoming',
+    lastMinute:false,recurring:false,
+    recurringPattern:'',recurringEnd:'',recurringCount:0,
+    meetingRequestSent:false,_ts:Date.now(),
+  };
+  dbPush('events',evt);
+  closeCalClickPopover();
+  showToast('Event added');
+}
+
+function openCalRequestModal(dateRef,dayIndex,weekOffset){
+  showModal(`
+    <h2>📅 Request Time Slot</h2>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">${dateRef}</div>
+    <div class="form-row"><label>Event Title</label><input class="input" id="cr-title" placeholder="What would you like to schedule?"></div>
+    <div class="form-row"><label>Preferred Time</label><input class="input" id="cr-time" placeholder="e.g. Evening, 19:00, Afternoon"></div>
+    <div class="form-row"><label>Notes</label><textarea class="input" id="cr-notes" style="min-height:64px" placeholder="Any details or context..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitCalRequest('${dateRef.replace(/'/g,"\\'")}',${dayIndex},${weekOffset})">Submit Request</button>
+    </div>
+  `);
+}
+
+function submitCalRequest(dateRef,dayIndex,weekOffset){
+  const title=(document.getElementById('cr-title')?.value||'').trim();
+  if(!title){showToast('Enter a title');return;}
+  const preferredTime=(document.getElementById('cr-time')?.value||'').trim();
+  const notes=(document.getElementById('cr-notes')?.value||'').trim();
+  dbPush('meeting_requests',{
+    title,preferredTime,notes,dateRef,
+    day:dayIndex,week:weekOffset,month:weekOffset>>2,
+    status:'pending',_ts:Date.now(),
+  });
+  dbPush('st_alerts',{type:'meet_req',text:'New meeting request: "'+title+'"',time:nowTime(),read:false,_ts:Date.now()});
+  closeModal();
+  showToast('Request submitted');
+}
+
 // ── DRAG & DROP ────────────────────────────────────
 let _dragEvt=null,_listDragKey=null;
 
@@ -6492,6 +7046,14 @@ function openCalDetail(key,isReq){
 }
 
 // ── ST DETAIL — uses modal inside ST panel, never touches desktop ──
+function _calAddField(target,label,value){
+  if(!value)return;
+  const f=document.createElement('div');
+  f.className='cal-detail-field';
+  f.innerHTML=`<div class="cal-detail-label">${label}</div><div class="cal-detail-value">${value}</div>`;
+  target.appendChild(f);
+}
+
 function openCalDetailST(key){
   let e=_events.find(ev=>ev._k===key);
   if(!e){
@@ -6514,25 +7076,17 @@ function openCalDetailST(key){
     +(e.lastMinute?'<span class="pill pill-red" style="font-size:10px">⚡ Last Minute</span>':''  );
   content.appendChild(pillRow);
 
-  function addField(label,value){
-    if(!value)return;
-    const f=document.createElement('div');
-    f.className='cal-detail-field';
-    f.innerHTML=`<div class="cal-detail-label">${label}</div><div class="cal-detail-value">${value}</div>`;
-    content.appendChild(f);
-  }
-
   if(isHidden){
     const h=document.createElement('div');
     h.style.cssText='color:var(--text3);font-size:13px;padding:12px 0';
     h.textContent='Eyes Only — details hidden from player';
     content.appendChild(h);
   } else {
-    addField('Time',e.time||'TBD');
-    addField('Day / Period',(e.day!==undefined?DAYS[e.day]:'—')+(e.timeRef?' · '+e.timeRef:''));
-    if(e.location)addField('Location','📍 '+e.location);
-    if(e.attendeesInternal)addField('Internal Attendees',e.attendeesInternal);
-    if(e.attendeesExternal)addField('External Attendees',e.attendeesExternal);
+    _calAddField(content,'Time',e.time||'TBD');
+    _calAddField(content,'Day / Period',(e.day!==undefined?DAYS[e.day]:'—')+(e.timeRef?' · '+e.timeRef:''));
+    if(e.location)_calAddField(content,'Location','📍 '+e.location);
+    if(e.attendeesInternal)_calAddField(content,'Internal Attendees',e.attendeesInternal);
+    if(e.attendeesExternal)_calAddField(content,'External Attendees',e.attendeesExternal);
     if(e.description){
       const df=document.createElement('div');
       df.className='cal-detail-field';
@@ -6544,7 +7098,7 @@ function openCalDetailST(key){
       df.appendChild(dv);
       content.appendChild(df);
     }
-    if(e.recurring&&e.recurringPattern)addField('Recurrence','↻ '+e.recurringPattern);
+    if(e.recurring&&e.recurringPattern)_calAddField(content,'Recurrence','↻ '+e.recurringPattern);
     if(e.stNote){
       const note=document.createElement('div');
       note.className='cal-st-note';
@@ -6649,20 +7203,11 @@ function _openCalDetailWindow(e, isSTView){
     hid.textContent = 'Details restricted — Eyes Only';
     body.appendChild(hid);
   } else {
-    // Detail fields helper
-    function addField(label, value){
-      if(!value)return;
-      const f = document.createElement('div');
-      f.className = 'cal-detail-field';
-      f.innerHTML = `<div class="cal-detail-label">${label}</div><div class="cal-detail-value">${value}</div>`;
-      body.appendChild(f);
-    }
-
-    addField('Time', e.time||'TBD');
-    addField('Day / Period', (e.day!==undefined ? DAYS[e.day] : '—') + (e.timeRef ? ' · '+e.timeRef : ''));
-    if(e.location) addField('Location', '📍 '+e.location);
-    if(e.attendeesInternal) addField('Internal Attendees', e.attendeesInternal);
-    if(e.attendeesExternal) addField('External Attendees', e.attendeesExternal);
+    _calAddField(body,'Time', e.time||'TBD');
+    _calAddField(body,'Day / Period', (e.day!==undefined ? DAYS[e.day] : '—') + (e.timeRef ? ' · '+e.timeRef : ''));
+    if(e.location) _calAddField(body,'Location', '📍 '+e.location);
+    if(e.attendeesInternal) _calAddField(body,'Internal Attendees', e.attendeesInternal);
+    if(e.attendeesExternal) _calAddField(body,'External Attendees', e.attendeesExternal);
 
     if(e.description){
       const df = document.createElement('div');
@@ -6677,7 +7222,7 @@ function _openCalDetailWindow(e, isSTView){
     }
 
     if(e.recurring && e.recurringPattern)
-      addField('Recurrence', '↻ '+e.recurringPattern);
+      _calAddField(body,'Recurrence', '↻ '+e.recurringPattern);
 
     // ── NOTES ─────────────────────────────────────────────
     // Player sees note ONLY if stNoteRevealed === true
